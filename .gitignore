@@ -1,3 +1,4 @@
 .DS_Store
-/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText
-/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/Data_Processing/enwiki-20180901-pages-meta-current18.xml-p13693074p15193074.bz2
+fastText
+**/.idea
+Data_Processing/*.bz2
