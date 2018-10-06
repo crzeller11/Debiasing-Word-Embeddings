@@ -28,6 +28,7 @@ def generate_gender_direction(female_wrds, male_wrds, model):
     pca.fit(subtraction)
     return pca.singular_values_
 
+# calculates direct bias statistic
 def direct_bias(gender_direction, words, model):
     algorithm_strictness = 0.8
     distance_sum = 0
