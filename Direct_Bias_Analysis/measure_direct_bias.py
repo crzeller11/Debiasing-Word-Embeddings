@@ -5,8 +5,10 @@ import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import normalize
 
-OLD_MODEL_FILEPATH = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/model.bin'
+OLD_MODEL_FILEPATH = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/og_model.bin'
 OLD_MODEL = FastText.load_fasttext_format(OLD_MODEL_FILEPATH)
+NEW_MODEL_FILEPATH = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/model.bin'
+NEW_MODEL = FastText.load_fasttext_format(NEW_MODEL_FILEPATH)
 
 def get_vecs(model, words):
     vectors = []
@@ -25,8 +27,8 @@ def generate_gender_direction(female_wrds, male_wrds, model):
     but actually accomplishes neither. I'm not sure if it's a component problem or what, but I'm just generally confused
     about when I have to transpose a vector, and when I do not.
     '''
-    female_vectors = get_vecs(female_wrds)
-    male_vectors = get_vecs(male_wrds)
+    female_vectors = get_vecs(model, female_wrds)
+    male_vectors = get_vecs(model, male_wrds)
 
     subtraction = np.array([
         np.subtract(female, male)
@@ -53,8 +55,9 @@ def main():
     occupations = ['doctor', 'nurse', 'actor', 'housekeeper', 'mechanic', 'soldier', 'cashier', 'comedian',
                    'gynecologist', 'musician']
     old_mdl_DB = direct_bias(generate_gender_direction(male_words, female_words, OLD_MODEL), occupations, OLD_MODEL)
-    print('DirectBias Statistic on the Basis of 10 gender-neutral occupations:', old_mdl_DB) # FIXME: need to reshape the data somewhere in here ugh
-
+    new_mdl_DB = direct_bias(generate_gender_direction(male_words, female_words, NEW_MODEL), occupations, NEW_MODEL)
+    print('OLD MODEL DirectBias Statistic on the Basis of 10 gender-neutral occupations:', old_mdl_DB)
+    print('NEW MODEL DirectBias Statistic on the Basis of 10 gender-neutral occupations:', new_mdl_DB)
 
 if __name__ == '__main__':
     main()
