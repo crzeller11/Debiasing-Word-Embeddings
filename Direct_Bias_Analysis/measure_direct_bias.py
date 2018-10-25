@@ -2,6 +2,7 @@
 from gensim.test.utils import common_texts
 from gensim.models import FastText
 import numpy as np
+from scipy import spatial
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import normalize
 
@@ -17,16 +18,9 @@ def get_vecs(model, words):
         vectors.append(vec)
     return vectors
 
+# get the vectors for all the female words and male words ,then, subtract all male from female (or all female from
+# male) save all those vectors to a set of vectors, and perform PCA on them
 def generate_gender_direction(female_wrds, male_wrds, model):
-    # get the vectors for all the female words and male words
-    # then, subtract all male from female (or all female from male)
-    # save all those vectors to a set of vectors, and perform PCA on them
-
-    '''
-    FIXME: THere is something odd going on here. This function should return a singular value that is from 0 to 1,
-    but actually accomplishes neither. I'm not sure if it's a component problem or what, but I'm just generally confused
-    about when I have to transpose a vector, and when I do not.
-    '''
     female_vectors = get_vecs(model, female_wrds)
     male_vectors = get_vecs(model, male_wrds)
 
@@ -36,17 +30,20 @@ def generate_gender_direction(female_wrds, male_wrds, model):
     ])
     pca = PCA()
     pca.fit(subtraction)
-    return pca.components_[0] # I'm not sure if this is supposed to be 100 dimensions or 2 dimensions?
+    return pca.components_[0]
 
 # calculates direct bias statistic
 def direct_bias(gender_direction, words, model):
-    algorithm_strictness = 0.8
+    print("gender direction magnitude:", np.sqrt(gender_direction.dot(gender_direction)))
+    algorithm_strictness = 1
     distance_sum = 0
     for word in words:
         vector = normalize([model[word]])
-        distance_sum += abs(np.dot(vector, gender_direction)) ** algorithm_strictness # something is very wrong with my vector shape here
+        print('vector magnitude:', np.sqrt(vector.dot(vector)))
+        distance_sum += abs(spatial.distance.cosine(vector, gender_direction)) ** algorithm_strictness # something is very wrong with my vector shape here
     DB = distance_sum / len(words)
     return DB
+
 
 def main():
     # load the model from FastText using Gensim
@@ -58,6 +55,9 @@ def main():
     new_mdl_DB = direct_bias(generate_gender_direction(male_words, female_words, NEW_MODEL), occupations, NEW_MODEL)
     print('OLD MODEL DirectBias Statistic on the Basis of 10 gender-neutral occupations:', old_mdl_DB)
     print('NEW MODEL DirectBias Statistic on the Basis of 10 gender-neutral occupations:', new_mdl_DB)
+
+
+
 
 if __name__ == '__main__':
     main()
