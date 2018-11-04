@@ -1,0 +1,9 @@
+man woman
+boy girl
+male female
+men women
+boys girls
+males females
+sir madam
+gentleman lady
+lad lass

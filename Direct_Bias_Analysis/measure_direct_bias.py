@@ -6,15 +6,19 @@ from scipy import spatial
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import normalize
 
-OLD_MODEL_FILEPATH = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/og_model.bin'
+OLD_MODEL_FILEPATH = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/NETWORK1MODEL1.bin'
 OLD_MODEL = FastText.load_fasttext_format(OLD_MODEL_FILEPATH)
-NEW_MODEL_FILEPATH = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/model.bin'
+NEW_MODEL_FILEPATH = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/NETWORK1MODEL2.bin'
 NEW_MODEL = FastText.load_fasttext_format(NEW_MODEL_FILEPATH)
 
 def get_vecs(model, words):
     vectors = []
-    #print("THIS IS AN UNREAL WORD:", model['ljksdhf']) # important to note that UNREAL WORDS still have vectors that
-    # come out of the model. This is probably why my
+    # important to note that UNREAL WORDS still have vectors that come out of the model.
+    # Also, this syntax to check if they're in the model or not is ineffective
+    if 'asdfgh' in model:
+        print("THIS IS AN UNREAL WORD:", model['asdfgh'])
+    else:
+        print("THIS ISN'T EVEN A REAL WORD, NICE TRY!")
     for word in words:
         if word in model:
             vec = model[word]
@@ -59,9 +63,9 @@ def main():
     occupations = ['doctor', 'nurse', 'actor', 'housekeeper', 'mechanic', 'soldier', 'cashier', 'comedian',
                    'gynecologist', 'musician', 'waiter', 'waitress', 'king', 'queen']
     old_mdl_DB = direct_bias(generate_gender_direction(male_words, female_words, OLD_MODEL), occupations, OLD_MODEL)
-    #new_mdl_DB = direct_bias(generate_gender_direction(male_words, female_words, NEW_MODEL), occupations, NEW_MODEL)
-    #print('OLD MODEL DirectBias Statistic on the Basis of 10 gender-neutral occupations:', old_mdl_DB)
-    #print('NEW MODEL DirectBias Statistic on the Basis of 10 gender-neutral occupations:', new_mdl_DB)
+    new_mdl_DB = direct_bias(generate_gender_direction(male_words, female_words, NEW_MODEL), occupations, NEW_MODEL)
+    print('OLD MODEL DirectBias Statistic on the Basis of 10 gender-neutral occupations:', old_mdl_DB)
+    print('NEW MODEL DirectBias Statistic on the Basis of 10 gender-neutral occupations:', new_mdl_DB)
 
 
 
