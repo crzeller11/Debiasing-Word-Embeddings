@@ -1,20 +1,28 @@
 import re
 
-ORIGINAL_FILEPATH = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/data.txt'
-NEW_FILEPATH = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/gender_neutral_data.txt'
+MODEL1VERSION1 = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/data.txt'
+MODEL1VERSION2 = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/gender_neutral_data.txt'
+
+MODEL2VERSION1 = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-EmbeddingsfastText/model2initialdata.txt'
+MODEL2VERSION2 = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-EmbeddingsfastText/model2transformeddata.txt'
 
 MARKER = '_CHLOE_ROCKS'
 
 REPLACEMENTS = [
     ['she','he'],
-    ['her','him'],
-    ['hers','his'],
     ['he','she'],
+    ["she'll","he'll"],
+    ["he'll", "she'll"],
+    ['her','him'],
     ['him','her'],
+    ['hers','his'],
     ['his','hers'],
     ['herself', 'himself'],
     ['himself', 'herself'],
-    ["she's", "he's"]
+    ["she's", "he's"],
+    ["he's", "she's"],
+    ["she'd", "he'd"],
+    ["he'd", "she'd"]
 ]
 
 
@@ -37,12 +45,19 @@ def replace(string, replacements):
     return s.replace(MARKER, '')
 
 
-with open(ORIGINAL_FILEPATH) as fin:
-    with open(NEW_FILEPATH, 'w') as fout:
-        for line in fin:
-            fout.write(replace(line, REPLACEMENTS))
+def write_me(original_filepath, new_filepath):
+    with open(original_filepath) as fin:
+        with open(new_filepath, 'w') as fout:
+            for line in fin:
+                fout.write(replace(line, REPLACEMENTS))
 
-with open(ORIGINAL_FILEPATH) as fin:
-    with open(NEW_FILEPATH, 'a') as fout:
-        for line in fin:
-            fout.write(line)
+    with open(original_filepath) as fin:
+        with open(new_filepath, 'a') as fout:
+            for line in fin:
+                fout.write(line)
+
+def main():
+    write_me(MODEL2VERSION1, MODEL2VERSION2)
+
+if __name__ == '__main__':
+    main()
