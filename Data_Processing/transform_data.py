@@ -3,8 +3,8 @@ import re
 MODEL1VERSION1 = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/data.txt'
 MODEL1VERSION2 = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/gender_neutral_data.txt'
 
-MODEL2VERSION1 = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-EmbeddingsfastText/model2initialdata.txt'
-MODEL2VERSION2 = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-EmbeddingsfastText/model2transformeddata.txt'
+MODEL2VERSION1 = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/model2initialdata.txt'
+MODEL2VERSION2 = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/model2transformeddata.txt'
 
 MARKER = '_CHLOE_ROCKS'
 

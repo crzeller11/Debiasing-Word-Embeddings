@@ -1,36 +1,39 @@
 # ALL IMPORTS
-from gensim.test.utils import common_texts
 from gensim.models import FastText
 import numpy as np
-from scipy import spatial
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import normalize
+import os
 
-OLD_MODEL_FILEPATH = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/NETWORK1MODEL1.bin'
-OLD_MODEL = FastText.load_fasttext_format(OLD_MODEL_FILEPATH)
-NEW_MODEL_FILEPATH = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/NETWORK1MODEL2.bin'
-NEW_MODEL = FastText.load_fasttext_format(NEW_MODEL_FILEPATH)
+PROJECT_PATH = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/'
+'''
+REFACTORING:
+- Iterate through all .bin files in fasttext, then create the models, cleaner syntax
+- Iterate through all
+'''
 
-def get_vecs(model, words):
+OCCUPATIONS = PROJECT_PATH + 'Direct_Bias_Analysis/NeutralWords/occupations.txt'
+ADJECTIVES = PROJECT_PATH + 'Direct_Bias_Analysis/NeutralWords/adjectives.txt'
+
+NETWORK1MODEL1 = FastText.load_fasttext_format(PROJECT_PATH + 'fastText/NETWORK1MODEL1.bin')
+NETWORK1MODEL2 = FastText.load_fasttext_format(PROJECT_PATH + 'fastText/NETWORK1MODEL2.bin')
+NETWORK2MODEL1 = FastText.load_fasttext_format(PROJECT_PATH + 'fastText/NETWORK2MODEL1.bin')
+NETWORK2MODEL2 = FastText.load_fasttext_format(PROJECT_PATH + 'fastText/NETWORK2MODEL2.bin')
+MODELS = [NETWORK1MODEL1, NETWORK1MODEL2, NETWORK2MODEL1, NETWORK2MODEL2]
+
+
+# extracts the vectors for a set of words from the given model, then returns a list of those vectors
+def get_vectors(model, words):
     vectors = []
-    # important to note that UNREAL WORDS still have vectors that come out of the model.
-    # Also, this syntax to check if they're in the model or not is ineffective
-    if 'asdfgh' in model:
-        print("THIS IS AN UNREAL WORD:", model['asdfgh'])
-    else:
-        print("THIS ISN'T EVEN A REAL WORD, NICE TRY!")
     for word in words:
         if word in model:
             vec = model[word]
             vectors.append(vec)
     return vectors
 
-# get the vectors for all the female words and male words ,then, subtract all male from female (or all female from
-# male) save all those vectors to a set of vectors, and perform PCA on them
+# creates a gender direction vector buy taking PCA of pairwise subtractions between female and male words
 def generate_gender_direction(female_wrds, male_wrds, model):
-    female_vectors = get_vecs(model, female_wrds)
-    male_vectors = get_vecs(model, male_wrds)
-
+    female_vectors = get_vectors(model, female_wrds)
+    male_vectors = get_vectors(model, male_wrds)
     subtraction = np.array([
         np.subtract(female, male)
         for female, male in zip(female_vectors, male_vectors)
@@ -38,6 +41,34 @@ def generate_gender_direction(female_wrds, male_wrds, model):
     pca = PCA()
     pca.fit(subtraction)
     return pca.components_[0]
+
+# returns a list of all gender directions (explicit, implicit, pronouns) for a particular model
+def mdl_gender_directions(model):
+    gender_directions = []
+    parent_path = PROJECT_PATH + 'Direct_Bias_Analysis/GenderDirections/'
+    for filename in os.listdir(parent_path):
+        gender_words = get_gender_words(parent_path + filename)
+        gender_directions.append(generate_gender_direction(gender_words[0], gender_words[1], model))
+    return gender_directions
+
+# takes a file with male/female gender pairs and returns lists of each set of words
+def get_gender_words(filepath):
+    male_words, female_words = [], []
+    with open(filepath) as f:
+        for line in f:
+            male_female = line.split()
+            male_words.append(male_female[0])
+            female_words.append(male_female[1])
+    male_female_lists = [female_words, male_words]
+    return male_female_lists
+
+# converts a file of neutral words into a list of words
+def get_words(filepath):
+    words = []
+    with open(filepath) as f:
+        for line in f:
+            words = line.split()
+    return words
 
 # calculates direct bias statistic
 def direct_bias(gender_direction, words, model):
@@ -50,25 +81,26 @@ def direct_bias(gender_direction, words, model):
             vector = model[word] / np.linalg.norm(model[word], ord=1)
             gender_direction = gender_direction / np.linalg.norm(gender_direction, ord=1)
             distance_sum += np.dot(vector, gender_direction) ** algorithm_strictness
-            print("Direct Bias for", word, ':', distance_sum)
-        #distance_sum += abs(spatial.distance.cosine(vector, gender_direction)) ** algorithm_strictness # something is very wrong with my vector shape here
     DB = distance_sum / count
     return DB
 
+# returns a list of each gender direction's DB statistic for a given model, and a given type of gender-neutral wordset
+def direct_bias_analysis(model, filepath):
+    words = get_words(filepath)
+    gender_directions = mdl_gender_directions(model)
+    direct_bias_stats = []
+    for i in range(len(gender_directions)):
+        direct_bias_stats.append((direct_bias(gender_directions[i], words, model)))
+    return direct_bias_stats
 
 def main():
-    # load the model from FastText using Gensim
-    female_words = ['she', 'her', 'hers']
-    male_words = ['he', 'him', 'his']
-    occupations = ['doctor', 'nurse', 'actor', 'housekeeper', 'mechanic', 'soldier', 'cashier', 'comedian',
-                   'gynecologist', 'musician', 'waiter', 'waitress', 'king', 'queen']
-    old_mdl_DB = direct_bias(generate_gender_direction(male_words, female_words, OLD_MODEL), occupations, OLD_MODEL)
-    new_mdl_DB = direct_bias(generate_gender_direction(male_words, female_words, NEW_MODEL), occupations, NEW_MODEL)
-    print('OLD MODEL DirectBias Statistic on the Basis of 10 gender-neutral occupations:', old_mdl_DB)
-    print('NEW MODEL DirectBias Statistic on the Basis of 10 gender-neutral occupations:', new_mdl_DB)
-
-
-
+    labels = ["MODEL 1 NETWORK 1:", "MODEL 1 NETWORK 2:", "MODEL 2 NETWORK 1:", "MODEL 2 NETWORK 2:"]
+    for i in range(len(MODELS)):
+        print(labels[i])
+        parent_path = PROJECT_PATH + 'Direct_Bias_Analysis/NeutralWords/'
+        for filename in os.listdir(parent_path):
+            filepath = parent_path + filename
+            print(filename, direct_bias_analysis(MODELS[i], filepath))
 
 if __name__ == '__main__':
     main()
