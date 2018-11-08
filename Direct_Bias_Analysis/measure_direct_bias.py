@@ -3,22 +3,20 @@ from gensim.models import FastText
 import numpy as np
 from sklearn.decomposition import PCA
 import os
+import csv
 
 PROJECT_PATH = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/'
-'''
-REFACTORING:
-- Iterate through all .bin files in fasttext, then create the models, cleaner syntax
-- Iterate through all
-'''
 
 OCCUPATIONS = PROJECT_PATH + 'Direct_Bias_Analysis/NeutralWords/occupations.txt'
 ADJECTIVES = PROJECT_PATH + 'Direct_Bias_Analysis/NeutralWords/adjectives.txt'
 
-NETWORK1MODEL1 = FastText.load_fasttext_format(PROJECT_PATH + 'fastText/NETWORK1MODEL1.bin')
-NETWORK1MODEL2 = FastText.load_fasttext_format(PROJECT_PATH + 'fastText/NETWORK1MODEL2.bin')
-NETWORK2MODEL1 = FastText.load_fasttext_format(PROJECT_PATH + 'fastText/NETWORK2MODEL1.bin')
-NETWORK2MODEL2 = FastText.load_fasttext_format(PROJECT_PATH + 'fastText/NETWORK2MODEL2.bin')
-MODELS = [NETWORK1MODEL1, NETWORK1MODEL2, NETWORK2MODEL1, NETWORK2MODEL2]
+NETWORK_PATHS = ['fastText/NETWORK1MODEL1.bin',
+                 'fastText/NETWORK1MODEL1.bin',
+                 'fastText/NETWORK1MODEL2.bin',
+                 'fastText/NETWORK2MODEL2.bin']
+
+
+MODELS = [FastText.load_fasttext_format(PROJECT_PATH + model) for model in NETWORK_PATHS]
 
 
 # extracts the vectors for a set of words from the given model, then returns a list of those vectors
@@ -80,7 +78,7 @@ def direct_bias(gender_direction, words, model):
             count += 1
             vector = model[word] / np.linalg.norm(model[word], ord=1)
             gender_direction = gender_direction / np.linalg.norm(gender_direction, ord=1)
-            distance_sum += np.dot(vector, gender_direction) ** algorithm_strictness
+            distance_sum += abs(np.dot(vector, gender_direction) ** algorithm_strictness)
     DB = distance_sum / count
     return DB
 
@@ -93,14 +91,27 @@ def direct_bias_analysis(model, filepath):
         direct_bias_stats.append((direct_bias(gender_directions[i], words, model)))
     return direct_bias_stats
 
-def main():
-    labels = ["MODEL 1 NETWORK 1:", "MODEL 1 NETWORK 2:", "MODEL 2 NETWORK 1:", "MODEL 2 NETWORK 2:"]
+def run_experiment():
+    results = []
     for i in range(len(MODELS)):
-        print(labels[i])
         parent_path = PROJECT_PATH + 'Direct_Bias_Analysis/NeutralWords/'
         for filename in os.listdir(parent_path):
             filepath = parent_path + filename
-            print(filename, direct_bias_analysis(MODELS[i], filepath))
+            results.append(direct_bias_analysis(MODELS[i], filepath))
+    return results
+
+def write_to_csv(results):
+    column_labels = ['IMPLIED', 'LITERAL', 'PRONOUNS']
+    with open('results.csv', mode='w') as file:
+        file = csv.writer(file)
+        file.writerow(column_labels)
+        file.writerows(results)
+        file.writerows(results)
+
+def main():
+    results = run_experiment()
+    write_to_csv(results)
+
 
 if __name__ == '__main__':
     main()
