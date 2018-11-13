@@ -96,6 +96,7 @@ def run_experiment():
     for i in range(len(MODELS)):
         parent_path = PROJECT_PATH + 'Direct_Bias_Analysis/NeutralWords/'
         for filename in os.listdir(parent_path):
+            print(filename)
             filepath = parent_path + filename
             results.append(direct_bias_analysis(MODELS[i], filepath))
     return results
@@ -110,7 +111,7 @@ def write_to_csv(results):
 
 def main():
     results = run_experiment()
-    write_to_csv(results)
+    #write_to_csv(results)
 
 
 if __name__ == '__main__':
