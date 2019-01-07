@@ -1,22 +1,25 @@
 import re
+import os
 
-MODEL1VERSION1 = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/data.txt'
-MODEL1VERSION2 = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/gender_neutral_data.txt'
+PROJECT_PATH = os.path.realpath(os.path.dirname(__file__) + '/..')
 
-MODEL2VERSION1 = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/model2initialdata.txt'
-MODEL2VERSION2 = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/model2transformeddata.txt'
+MODEL1VERSION1 = PROJECT_PATH + '/fastText/data.txt'
+MODEL1VERSION2 = PROJECT_PATH + '/fastText/gender_neutral_data.txt'
+
+MODEL2VERSION1 = PROJECT_PATH + '/fastText/model2initialdata.txt'
+MODEL2VERSION2 = PROJECT_PATH + '/fastText/model2transformeddata.txt'
 
 MARKER = '_CHLOE_ROCKS'
 
 REPLACEMENTS = [
-    ['she','he'],
-    ['he','she'],
-    ["she'll","he'll"],
+    ['she', 'he'],
+    ['he', 'she'],
+    ["she'll", "he'll"],
     ["he'll", "she'll"],
-    ['her','him'],
-    ['him','her'],
-    ['hers','his'],
-    ['his','hers'],
+    ['her', 'him'],
+    ['him', 'her'],
+    ['hers', 'his'],
+    ['his', 'hers'],
     ['herself', 'himself'],
     ['himself', 'herself'],
     ["she's", "he's"],
@@ -50,14 +53,15 @@ def write_me(original_filepath, new_filepath):
         with open(new_filepath, 'w') as fout:
             for line in fin:
                 fout.write(replace(line, REPLACEMENTS))
-
     with open(original_filepath) as fin:
         with open(new_filepath, 'a') as fout:
             for line in fin:
                 fout.write(line)
 
+
 def main():
     write_me(MODEL2VERSION1, MODEL2VERSION2)
+
 
 if __name__ == '__main__':
     main()
