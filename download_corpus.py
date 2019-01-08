@@ -12,7 +12,6 @@ from gensim.corpora import WikiCorpus
 
 from util import CORPORA_PATH
 
-
 WIKIDUMP_URL = 'https://dumps.wikimedia.org/enwiki/latest/'
 
 
