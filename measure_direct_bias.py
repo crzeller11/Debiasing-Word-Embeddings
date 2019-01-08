@@ -1,39 +1,28 @@
-import csv
-import os
-
 import numpy as np
 from gensim.models import FastText
 from sklearn.decomposition import PCA
 
-PROJECT_PATH = os.path.realpath(os.path.dirname(__file__) + '/..')
-
-OCCUPATIONS = PROJECT_PATH + 'Direct_Bias_Analysis/NeutralWords/occupations.txt'
-ADJECTIVES = PROJECT_PATH + 'Direct_Bias_Analysis/NeutralWords/adjectives.txt'
-
-NETWORK_PATHS = [
-    'fastText/NETWORK1MODEL1.bin',
-    'fastText/NETWORK1MODEL1.bin',
-    'fastText/NETWORK1MODEL2.bin',
-    'fastText/NETWORK2MODEL2.bin'
-]
-
-MODELS = [FastText.load_fasttext_format(PROJECT_PATH + model) for model in NETWORK_PATHS]
+from util import MODELS_PATH, DIRECTIONS_PATH, WORDS_PATH, list_files
 
 
-# extracts the vectors for a set of words from the given model, then returns a list of those vectors
-def get_vectors(model, words):
-    vectors = []
-    for word in words:
-        if word in model:
-            vec = model[word]
-            vectors.append(vec)
-    return vectors
+def define_gender_direction_pca(model, direction_file):
+    """Create a gender direction using PCA.
 
+    Arguments:
+        model (Model): A Gensim word embedding model.
+        direction_file (str): A file of male-female word pairs.
 
-# creates a gender direction vector buy taking PCA of pairwise subtractions between female and male words
-def generate_gender_direction(female_wrds, male_wrds, model):
-    female_vectors = get_vectors(model, female_wrds)
-    male_vectors = get_vectors(model, male_wrds)
+    Returns:
+        Vector: A male->female vector.
+    """
+    with open(direction_file) as fd:
+        male_words, female_words = list(zip(*(line.split() for line in fd)))
+    female_vectors = []
+    male_vectors = []
+    for female_word, male_word in zip(female_words, male_words):
+        if female_word in model and male_word in model:
+            female_vectors.append(model[female_word])
+            male_vectors.append(model[male_word])
     subtraction = np.array([
         np.subtract(female, male) for female, male in zip(female_vectors, male_vectors)
     ])
@@ -42,85 +31,93 @@ def generate_gender_direction(female_wrds, male_wrds, model):
     return pca.components_[0]
 
 
-# returns a list of all gender directions (explicit, implicit, pronouns) for a particular model
-def mdl_gender_directions(model):
-    gender_directions = []
-    parent_path = PROJECT_PATH + 'Direct_Bias_Analysis/GenderDirections/'
-    for filename in os.listdir(parent_path):
-        gender_words = get_gender_words(parent_path + filename)
-        gender_directions.append(generate_gender_direction(gender_words[0], gender_words[1], model))
-    return gender_directions
+def calculate_word_bias(model, direction, word, strictness=1):
+    """Calculate the bas of a word.
+
+    Arguments:
+        model (Model): A Gensim word embedding model.
+        direction (Vector): A direction against which to measure the bias.
+        word (str): The word for which measure the bias.
+        strictness (float): Exponential scaling parameter for the bias.
+
+    Returns:
+        float: The bias of the word.
+    """
+    if word not in model:
+        return None
+    word_vector = model[word] / np.linalg.norm(model[word], ord=1)
+    direction_vector = direction / np.linalg.norm(direction, ord=1)
+    return np.dot(word_vector, direction_vector)**strictness
 
 
-# takes a file with male/female gender pairs and returns lists of each set of words
-def get_gender_words(filepath):
-    male_words, female_words = [], []
-    with open(filepath) as f:
-        for line in f:
-            male_female = line.split()
-            male_words.append(male_female[0])
-            female_words.append(male_female[1])
-    return [female_words, male_words]
+def calculate_model_bias(model, direction, words, strictness=1):
+    """Calculate the direct bias statistic for a model.
 
+    Arguments:
+        model (Model): A Gensim word embedding model.
+        direction (Vector): A direction against which to measure the bias.
+        words (List[str]): The words for which measure the bias.
+        strictness (float): Exponential scaling parameter for the bias.
 
-# converts a file of neutral words into a list of words
-def get_words(filepath):
-    words = []
-    with open(filepath) as f:
-        for line in f:
-            words = line.split()
-    return words
-
-
-# calculates direct bias statistic
-def direct_bias(gender_direction, words, model):
-    algorithm_strictness = 1
-    distance_sum = 0
+    Returns:
+        float: The average bias of the model.
+    """
+    abs_total = 0
     count = 0
     for word in words:
         if word in model:
             count += 1
-            vector = model[word] / np.linalg.norm(model[word], ord=1)
-            gender_direction = gender_direction / np.linalg.norm(gender_direction, ord=1)
-            distance_sum += abs(np.dot(vector, gender_direction)**algorithm_strictness)
-    return distance_sum / count
+            abs_total += abs(calculate_word_bias(model, direction, word, strictness=strictness))
+    return abs_total / count
 
 
-# returns a list of each gender direction's DB statistic for a given model, and a given type of gender-neutral wordset
-def direct_bias_analysis(model, filepath):
-    words = get_words(filepath)
-    return [
-        direct_bias(gender_direction, words, model)
-        for gender_direction in mdl_gender_directions(model)
-    ]
+def read_words_file(words_file):
+    """Read in a words file.
+
+    Arguments:
+        words_file (str): A file path of neutral words.
+
+    Returns:
+        List(str): The words in the file.
+    """
+    words = []
+    with open(words_file) as fd:
+        for line in fd.readlines():
+            words.extend(line.split())
+    return words
 
 
-def run_experiment():
-    results = []
-    for i, model in enumerate(MODELS, start=1):
-        print("MODEL", i) # where each model is the trained version of itself
-        parent_path = PROJECT_PATH + 'Direct_Bias_Analysis/NeutralWords/'
-        for filename in os.listdir(parent_path):
-            print("\tTHIS IS THE FILENAME: ", filename)
-            filepath = parent_path + filename
-            print("\t\tTHESE ARE THE RESULTS:")
-            results.append(direct_bias_analysis(model, filepath))
-    return results
+def run_experiment(model, direction_file, words_file):
+    """Run a word embedding bias experiment.
 
+    Arguments:
+        model (Model): A Gensim word embedding model.
+        direction_file (str): A file path of direction word pairs.
+        words_file (str): A file path of neutral words.
 
-def write_to_csv(results):
-    column_labels = ['IMPLIED', 'LITERAL', 'PRONOUNS']
-    with open('results.csv', mode='w') as file:
-        file = csv.writer(file)
-        file.writerow(column_labels)
-        file.writerows(results)
-        file.writerows(results)
+    Returns:
+        float: The average bias of the model.
+    """
+    words = read_words_file(words_file)
+    direction = define_gender_direction_pca(model, direction_file)
+    return calculate_model_bias(model, direction, words)
 
 
 def main():
-    results = run_experiment()
-    #write_to_csv(results)
-    print(results)
+    """Entry point for the project."""
+    model_files = list_files(MODELS_PATH)
+    model_files = [file for file in model_files if file.endswith('.bin')]
+    direction_files = list_files(DIRECTIONS_PATH)
+    words_files = list_files(WORDS_PATH)
+    for model_file in model_files:
+        model = FastText.load_fasttext_format(model_file)
+        for direction_file in direction_files:
+            for words_file in words_files:
+                bias = run_experiment(model, direction_file, words_file)
+                print(model_file)
+                print(direction_file)
+                print(words_file)
+                print(bias)
 
 
 if __name__ == '__main__':
