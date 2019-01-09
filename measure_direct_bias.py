@@ -114,13 +114,13 @@ def build_all_fasttext_models(model_type='skipgram'):
         if not corpus_file.endswith('-swapped'):
             create_pronoun_swapped_corpus(corpus_file)
     for corpus_file in list_files(CORPORA_PATH):
-        model_file = os.path.join(
+        model_stub = os.path.join(
             MODELS_PATH,
             os.path.basename(corpus_file) + '.' + model_type,
         )
-        if not os.path.exists(model_file):
+        if not os.path.exists(model_stub + '.bin'):
             subprocess.run(
-                args=['fasttext', 'skipgram', '-input', corpus_file, '-output', model_file]
+                args=['fasttext', 'skipgram', '-input', corpus_file, '-output', model_stub]
             )
 
 
@@ -140,6 +140,7 @@ def main():
                 print(direction_file)
                 print(words_file)
                 print(bias)
+                print()
 
 
 if __name__ == '__main__':
