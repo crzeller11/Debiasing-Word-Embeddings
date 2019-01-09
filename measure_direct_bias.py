@@ -24,9 +24,9 @@ def define_gender_direction_pca(model, direction_file):
     female_vectors = []
     male_vectors = []
     for female_word, male_word in zip(female_words, male_words):
-        if female_word in model and male_word in model:
-            female_vectors.append(model[female_word])
-            male_vectors.append(model[male_word])
+        if female_word in model.wv and male_word in model.wv:
+            female_vectors.append(model.wv[female_word])
+            male_vectors.append(model.wv[male_word])
     subtraction = np.array([
         np.subtract(female, male) for female, male in zip(female_vectors, male_vectors)
     ])
@@ -47,9 +47,9 @@ def calculate_word_bias(model, direction, word, strictness=1):
     Returns:
         float: The bias of the word.
     """
-    if word not in model:
+    if word not in model.wv:
         return None
-    word_vector = model[word] / np.linalg.norm(model[word], ord=1)
+    word_vector = model.wv[word] / np.linalg.norm(model.wv[word], ord=1)
     direction_vector = direction / np.linalg.norm(direction, ord=1)
     return np.dot(word_vector, direction_vector)**strictness
 
@@ -69,7 +69,7 @@ def calculate_model_bias(model, direction, words, strictness=1):
     abs_total = 0
     count = 0
     for word in words:
-        if word in model:
+        if word in model.wv:
             count += 1
             abs_total += abs(calculate_word_bias(model, direction, word, strictness=strictness))
     return abs_total / count
