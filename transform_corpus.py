@@ -50,6 +50,8 @@ def get_new_corpus_filepath(orig_filepath):
 
 def create_pronoun_swapped_corpus(orig_filepath):
     new_filepath = get_new_corpus_filepath(orig_filepath)
+    if os.path.exists(new_filepath):
+        return
     with open(orig_filepath) as fin:
         with open(new_filepath, 'w') as fout:
             for line in fin:
@@ -67,8 +69,6 @@ def main():
     else:
         print('usage: ' + sys.argv[0] + ' <filepath>')
         exit(1)
-    if os.path.exists(get_new_corpus_filepath(filepath)):
-        return
     create_pronoun_swapped_corpus(filepath)
 
 

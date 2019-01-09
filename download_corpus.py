@@ -76,6 +76,15 @@ def extract_corpus(infile, outfile):
     print('Processing complete! Yippee!')
 
 
+def download_corpus(index=None):
+    corpus_path = wikipedia_dump_path(index)
+    if os.path.exists(corpus_path):
+        return
+    dumpfile = download_dump(index)
+    extract_corpus(dumpfile, corpus_path)
+    os.remove(dumpfile)
+
+
 def main():
     index = None
     if len(sys.argv) == 2:
@@ -83,12 +92,7 @@ def main():
     elif len(sys.argv) > 2:
         print('usage: ' + sys.argv[0] + ' [index]')
         exit(1)
-    corpus_path = wikipedia_dump_path(index)
-    if os.path.exists(corpus_path):
-        return
-    dumpfile = download_dump(index)
-    extract_corpus(dumpfile, corpus_path)
-    os.remove(dumpfile)
+    download_corpus(index)
 
 
 if __name__ == '__main__':
