@@ -1,8 +1,12 @@
+import os
+import subprocess
+
 import numpy as np
 from gensim.models import FastText
 from sklearn.decomposition import PCA
 
-from util import MODELS_PATH, DIRECTIONS_PATH, WORDS_PATH, list_files
+from util import CORPORA_PATH, MODELS_PATH, DIRECTIONS_PATH, WORDS_PATH, list_files
+from transform_corpus import create_pronoun_swapped_corpus
 
 
 def define_gender_direction_pca(model, direction_file):
@@ -103,8 +107,25 @@ def run_experiment(model, direction_file, words_file):
     return calculate_model_bias(model, direction, words)
 
 
+def build_all_fasttext_models(model_type='skipgram'):
+    if model_type not in ['skipgram', 'cbow']:
+        raise ValueError('model_type must be "skipgram" or "cbow" but got "' + str(model_type) + '"')
+    for corpus_file in list_files(CORPORA_PATH):
+        create_pronoun_swapped_corpus(corpus_file)
+    for corpus_file in list_files(CORPORA_PATH):
+        model_file = os.path.join(
+            MODELS_PATH,
+            os.path.basename(corpus_file) + '.' + model_type,
+        )
+        if not os.path.exists:
+            subprocess.run(
+                args=['fasttext', 'skipgram', '-input', corpus_file, '-output', model_file]
+            )
+
+
 def main():
     """Entry point for the project."""
+    build_all_fasttext_models('skipgram')
     model_files = list_files(MODELS_PATH)
     model_files = [file for file in model_files if file.endswith('.bin')]
     direction_files = list_files(DIRECTIONS_PATH)
