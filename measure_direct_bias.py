@@ -111,13 +111,14 @@ def build_all_fasttext_models(model_type='skipgram'):
     if model_type not in ['skipgram', 'cbow']:
         raise ValueError('model_type must be "skipgram" or "cbow" but got "' + str(model_type) + '"')
     for corpus_file in list_files(CORPORA_PATH):
-        create_pronoun_swapped_corpus(corpus_file)
+        if not corpus_file.endswith('-swapped'):
+            create_pronoun_swapped_corpus(corpus_file)
     for corpus_file in list_files(CORPORA_PATH):
         model_file = os.path.join(
             MODELS_PATH,
             os.path.basename(corpus_file) + '.' + model_type,
         )
-        if not os.path.exists:
+        if not os.path.exists(model_file):
             subprocess.run(
                 args=['fasttext', 'skipgram', '-input', corpus_file, '-output', model_file]
             )
