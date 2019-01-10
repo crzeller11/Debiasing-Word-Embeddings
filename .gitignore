@@ -1,4 +1,8 @@
 .DS_Store
 fastText
-**/.idea
-Data_Processing/*.bz2
+.idea
+*.bz2
+.ipynb_checkpoints
+
+corpora
+models

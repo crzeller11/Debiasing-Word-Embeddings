@@ -1,13 +1,6 @@
 import re
 import os
-
-PROJECT_PATH = os.path.realpath(os.path.dirname(__file__) + '/..')
-
-MODEL1VERSION1 = PROJECT_PATH + '/fastText/data.txt'
-MODEL1VERSION2 = PROJECT_PATH + '/fastText/gender_neutral_data.txt'
-
-MODEL2VERSION1 = PROJECT_PATH + '/fastText/model2initialdata.txt'
-MODEL2VERSION2 = PROJECT_PATH + '/fastText/model2transformeddata.txt'
+import sys
 
 MARKER = '_CHLOE_ROCKS'
 
@@ -31,36 +24,52 @@ REPLACEMENTS = [
 
 def replace(string, replacements):
     """Replace a set of words with another.
+
+    This function uses a temporary marked version to prevent "mutual"
+    replacements from overwriting each other.
+
     Arguments:
         string (str): The string in which the words should be replaced.
         replacements (List[List[str, str]]): A list of [old, new] replacement word pairs.
+
     Returns:
         str: The original string with the words replaced.
     """
-    s = string
-    # replace everything to a marked version
-    # this prevents "mutual" replacements to overwrite each other
     for old, new in replacements:
         pattern = r'\b' + old + r'\b'
         replacement = new + MARKER
-        s = re.sub(pattern, replacement, s, flags=re.IGNORECASE)
-    # remove the mark
-    return s.replace(MARKER, '')
+        string = re.sub(pattern, replacement, string, flags=re.IGNORECASE)
+    return string.replace(MARKER, '')
 
 
-def write_me(original_filepath, new_filepath):
-    with open(original_filepath) as fin:
+def get_new_corpus_filepath(orig_filepath):
+    stub, ext = os.path.splitext(os.path.basename(orig_filepath))
+    new_filename = stub + '-swapped' + ext
+    return os.path.join(os.path.dirname(orig_filepath), new_filename)
+
+
+def create_pronoun_swapped_corpus(orig_filepath):
+    new_filepath = get_new_corpus_filepath(orig_filepath)
+    if os.path.exists(new_filepath):
+        return
+    with open(orig_filepath) as fin:
         with open(new_filepath, 'w') as fout:
             for line in fin:
                 fout.write(replace(line, REPLACEMENTS))
-    with open(original_filepath) as fin:
+    with open(orig_filepath) as fin:
         with open(new_filepath, 'a') as fout:
             for line in fin:
                 fout.write(line)
 
 
 def main():
-    write_me(MODEL2VERSION1, MODEL2VERSION2)
+    filepath = None
+    if len(sys.argv) == 2:
+        filepath = os.path.realpath(os.path.expanduser(sys.argv[1]))
+    else:
+        print('usage: ' + sys.argv[0] + ' <filepath>')
+        exit(1)
+    create_pronoun_swapped_corpus(filepath)
 
 
 if __name__ == '__main__':
