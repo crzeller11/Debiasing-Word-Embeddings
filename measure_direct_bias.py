@@ -8,9 +8,43 @@ from sklearn.decomposition import PCA
 from util import CORPORA_PATH, MODELS_PATH, DIRECTIONS_PATH, WORDS_PATH, list_files
 from transform_corpus import create_pronoun_swapped_corpus
 
+# TODO: write define_gender_direction_mean(model, direction_file)
+def define_gender_direction_mean(model, direction_file):
+    """
+    Create a gender direction by averaging dimensions of all gender words.
+
+    Arguments:
+        model (Model): A Gensim word embedding model.
+        direction_file (str): A file of male-female word pairs.
+
+    Returns:
+         Vector: a male->female vector.
+    """
+    with open(direction_file) as fd:
+        male_words, female_words = list(zip(*(line.split() for line in fd)))
+    fem_avg_vec, male_avg_vec = [],[]
+    num_male_words, num_fem_words = len(male_words),len(female_words)
+    for i in range(len(model.wv[female_words[0]])): # loop through all dimensions
+        fem_sum, male_sum = 0, 0
+        for j in range(len(male_words)):
+            # MALE VECTORS
+            if male_words[j] in model.wv:
+                male_sum += model.wv[male_words[j]][i]
+            else:
+                num_male_words -= 1
+            # FEMALE VECTORS
+            if female_words[j] in model.wv:
+                fem_sum += model.wv[female_words[j]][i]
+            else:
+                num_fem_words -= 1
+        fem_avg_vec.append(fem_sum / num_fem_words)
+        male_avg_vec.append(male_sum / num_male_words)
+        subtraction = np.array([np.subtract(fem_avg_vec, male_avg_vec)])
+        return subtraction
 
 def define_gender_direction_pca(model, direction_file):
-    """Create a gender direction using PCA.
+    """
+    Create a gender direction using PCA.
 
     Arguments:
         model (Model): A Gensim word embedding model.
@@ -32,6 +66,7 @@ def define_gender_direction_pca(model, direction_file):
     ])
     pca = PCA()
     pca.fit(subtraction)
+    print("TYPE OF RETURNED GENDER VECTOR:{}".format(type(pca.components_[0])))
     return pca.components_[0]
 
 
