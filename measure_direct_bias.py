@@ -39,8 +39,8 @@ def define_gender_direction_mean(model, direction_file):
                 num_fem_words -= 1
         fem_avg_vec.append(fem_sum / num_fem_words)
         male_avg_vec.append(male_sum / num_male_words)
-        subtraction = np.array([np.subtract(fem_avg_vec, male_avg_vec)])
-        return subtraction
+    subtraction = np.array(np.subtract(fem_avg_vec, male_avg_vec))
+    return subtraction
 
 def define_gender_direction_pca(model, direction_file):
     """
@@ -138,7 +138,9 @@ def run_experiment(model, direction_file, words_file):
         float: The average bias of the model.
     """
     words = read_words_file(words_file)
+    # FIXME: Set up experimental design to accomodate each one of these subspace methods
     direction = define_gender_direction_pca(model, direction_file)
+    #direction2 = define_gender_direction_mean(model, direction_file) # TO RUN MEAN SUBSPACE
     return calculate_model_bias(model, direction, words)
 
 
