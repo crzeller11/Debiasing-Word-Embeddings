@@ -147,7 +147,6 @@ class WrappedEmbedding(Embedding, polyglot_mapping.Embedding):
     def from_glove(*args, **kwargs):
         return WrappedEmbedding.__wrap(super(WrappedEmbedding, WrappedEmbedding).from_glove(*args), **kwargs)
 
-    # FIXME: THis needs to be rewritten for FastText
     @staticmethod
     def from_fasttext(*args, **kwargs):
         return WrappedEmbedding.__wrap(super(WrappedEmbedding, WrappedEmbedding).from_fasttext(*args), **kwargs)

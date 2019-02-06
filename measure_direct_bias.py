@@ -71,6 +71,9 @@ def define_gender_direction_pca(model, direction_file):
 
 
 def calculate_word_bias(model, direction, word, strictness=1):
+    words = list(model.wv.vocab)
+    print('MODEL KEYS:',words)
+    print('MODEL VECTORS:',[model.wv[word] for word in words])
     """Calculate the bas of a word.
 
     Arguments:

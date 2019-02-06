@@ -285,8 +285,8 @@ class Embedding(object):
   @staticmethod
   def _from_fasttext(fname):
       model = FastText.load_fasttext_format(fname)
-      words = model.wv.keys()
-      vectors = model.wv.values()
+      words = list(model.wv.vocab)
+      vectors = np.asarray([model.wv[word] for word in words], dtype=np.float32)
       return words, vectors
 
   @staticmethod
