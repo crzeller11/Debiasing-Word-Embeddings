@@ -8,6 +8,9 @@ from sklearn.decomposition import PCA
 from util import CORPORA_PATH, MODELS_PATH, DIRECTIONS_PATH, WORDS_PATH, list_files
 from transform_corpus import create_pronoun_swapped_corpus
 
+from src.embeddings import Embedding, WrappedEmbedding
+from evaluate import read_dataset_directory, score_embedding
+
 # TODO: write define_gender_direction_mean(model, direction_file)
 def define_gender_direction_mean(model, direction_file):
     """
@@ -71,9 +74,6 @@ def define_gender_direction_pca(model, direction_file):
 
 
 def calculate_word_bias(model, direction, word, strictness=1):
-    words = list(model.wv.vocab)
-    print('MODEL KEYS:',words)
-    print('MODEL VECTORS:',[model.wv[word] for word in words])
     """Calculate the bas of a word.
 
     Arguments:
@@ -138,13 +138,13 @@ def run_experiment(model, direction_file, words_file):
         words_file (str): A file path of neutral words.
 
     Returns:
-        float: The average bias of the model.
+        List: The average bias of the model, wrt pca gender subspace and averaged gender subspace.
     """
     words = read_words_file(words_file)
-    # FIXME: Set up experimental design to accomodate each one of these subspace methods
-    direction = define_gender_direction_pca(model, direction_file)
-    #direction2 = define_gender_direction_mean(model, direction_file) # TO RUN MEAN SUBSPACE
-    return calculate_model_bias(model, direction, words)
+    direction_pca = define_gender_direction_pca(model, direction_file)
+    direction_avg = define_gender_direction_mean(model, direction_file)
+    biases = [calculate_model_bias(model, direction_pca, words), calculate_model_bias(model, direction_avg, words)]
+    return biases
 
 
 def build_all_fasttext_models(model_type='skipgram'):
@@ -166,6 +166,8 @@ def build_all_fasttext_models(model_type='skipgram'):
 
 def main():
     """Entry point for the project."""
+    kwargs = {'supports_phrases': False,
+              'google_news_normalize': False}
     build_all_fasttext_models('skipgram')
     model_files = list_files(MODELS_PATH)
     model_files = [file for file in model_files if file.endswith('.bin')]
@@ -173,13 +175,21 @@ def main():
     words_files = list_files(WORDS_PATH)
     for model_file in model_files:
         model = FastText.load_fasttext_format(model_file)
+        embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
+        print("MODEL EVALUATION; {}:".format(str(model_file)))
+        dataset = list(read_dataset_directory('wiki-sem-500/en'))
+        score_embedding(embedding, dataset)
+        print()
+        print()
+        print("EXPERIMENTAL RESULTS:")
         for direction_file in direction_files:
             for words_file in words_files:
                 bias = run_experiment(model, direction_file, words_file)
                 print(model_file)
                 print(direction_file)
                 print(words_file)
-                print(bias)
+                print("PCA BIAS:", bias[0])
+                print("AVERAGED BIAS:", bias[1])
                 print()
 
 
