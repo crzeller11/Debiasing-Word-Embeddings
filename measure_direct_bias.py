@@ -69,7 +69,7 @@ def define_gender_direction_pca(model, direction_file):
     ])
     pca = PCA()
     pca.fit(subtraction)
-    print("TYPE OF RETURNED GENDER VECTOR:{}".format(type(pca.components_[0])))
+    print("TYPE OF RETURNED GENDER VECTOR: {}".format(direction_file.rsplit('/', 1)[-1]))
     return pca.components_[0]
 
 
@@ -163,11 +163,14 @@ def build_all_fasttext_models(model_type='skipgram'):
                 args=['fasttext', 'skipgram', '-input', corpus_file, '-output', model_stub]
             )
 
+def pretty_print(filename):
+    print(filename.rsplit('/', 1)[-1])
 
 def main():
     """Entry point for the project."""
     kwargs = {'supports_phrases': False,
               'google_news_normalize': False}
+
     build_all_fasttext_models('skipgram')
     model_files = list_files(MODELS_PATH)
     model_files = [file for file in model_files if file.endswith('.bin')]
@@ -176,18 +179,17 @@ def main():
     for model_file in model_files:
         model = FastText.load_fasttext_format(model_file)
         embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
-        print("MODEL EVALUATION; {}:".format(str(model_file)))
+        print("MODEL EVALUATION; {}:".format(str(model_file.rsplit('/', 1)[-1])))
         dataset = list(read_dataset_directory('wiki-sem-500/en'))
         score_embedding(embedding, dataset)
-        print()
-        print()
+        print('\n\n')
         print("EXPERIMENTAL RESULTS:")
         for direction_file in direction_files:
             for words_file in words_files:
                 bias = run_experiment(model, direction_file, words_file)
-                print(model_file)
-                print(direction_file)
-                print(words_file)
+                pretty_print(model_file)
+                pretty_print(direction_file)
+                pretty_print(words_file)
                 print("PCA BIAS:", bias[0])
                 print("AVERAGED BIAS:", bias[1])
                 print()
