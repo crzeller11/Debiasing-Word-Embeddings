@@ -11,7 +11,12 @@ from transform_corpus import create_pronoun_swapped_corpus
 from src.embeddings import Embedding, WrappedEmbedding
 from evaluate import read_dataset_directory, score_embedding
 
-# TODO: write define_gender_direction_mean(model, direction_file)
+
+def simple_gender_direction(model, wrd_1, wrd_2):
+    # ASSUMES WORD 1 IS FEMALE, WORD 2 is MALE
+    subtraction = np.array(np.subtract(model.wv[wrd_1], model.wv[wrd_2]))
+    return subtraction
+
 def define_gender_direction_mean(model, direction_file):
     """
     Create a gender direction by averaging dimensions of all gender words.
@@ -129,7 +134,7 @@ def read_words_file(words_file):
     return words
 
 
-def run_experiment(model, direction_file, words_file):
+def run_experiment_1(model, direction_file, words_file):
     """Run a word embedding bias experiment.
 
     Arguments:
@@ -145,6 +150,16 @@ def run_experiment(model, direction_file, words_file):
     direction_avg = define_gender_direction_mean(model, direction_file)
     biases = [calculate_model_bias(model, direction_pca, words), calculate_model_bias(model, direction_avg, words)]
     return biases
+
+def run_experiment_2(model, direction_file, words_file):
+    words = read_words_file(words_file)
+    with open(direction_file) as fd:
+        male_words, female_words = list(zip(*(line.split() for line in fd)))
+    for i in range(len(male_words)):
+        print('GENDER DIRECTION:', female_words[i], male_words[i])
+        direction = simple_gender_direction(model, female_words[i], male_words[i])
+        print("GENDER BIAS:", calculate_model_bias(model, direction, words))
+
 
 
 def build_all_fasttext_models(model_type='skipgram'):
@@ -168,32 +183,56 @@ def pretty_print(filename):
 
 def main():
     """Entry point for the project."""
+    EXP = int(input("ENTER EXPERIMENT NUMBER: "))
     kwargs = {'supports_phrases': False,
               'google_news_normalize': False}
-
     build_all_fasttext_models('skipgram')
     model_files = list_files(MODELS_PATH)
     model_files = [file for file in model_files if file.endswith('.bin')]
     direction_files = list_files(DIRECTIONS_PATH)
     words_files = list_files(WORDS_PATH)
-    for model_file in model_files:
-        model = FastText.load_fasttext_format(model_file)
-        embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
-        print("MODEL EVALUATION; {}:".format(str(model_file.rsplit('/', 1)[-1])))
-        dataset = list(read_dataset_directory('wiki-sem-500/en'))
-        score_embedding(embedding, dataset)
-        print('\n\n')
-        print("EXPERIMENTAL RESULTS:")
-        for direction_file in direction_files:
-            for words_file in words_files:
-                bias = run_experiment(model, direction_file, words_file)
-                pretty_print(model_file)
-                pretty_print(direction_file)
-                pretty_print(words_file)
-                print("PCA BIAS:", bias[0])
-                print("AVERAGED BIAS:", bias[1])
-                print()
-
+    if EXP == 1:
+        for model_file in model_files:
+            model = FastText.load_fasttext_format(model_file)
+            embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
+            print("MODEL EVALUATION; {}:".format(str(model_file.rsplit('/', 1)[-1])))
+            dataset = list(read_dataset_directory('wiki-sem-500/en'))
+            score_embedding(embedding, dataset)
+            print('\n\n')
+            print("EXPERIMENTAL RESULTS:")
+            for direction_file in direction_files:
+                for words_file in words_files:
+                    bias = run_experiment_1(model, direction_file, words_file)
+                    pretty_print(model_file)
+                    pretty_print(direction_file)
+                    pretty_print(words_file)
+                    print("PCA BIAS:", bias[0])
+                    print("AVERAGED BIAS:", bias[1])
+                    print()
+    '''
+    Experiment 2 prints the measured direct bias for each category of gender-neutral words, on the basis of
+    gender directions that are the pairwise subtractions of gender pairs.
+    It should generate:
+        - The bias using each one of the pairs alone
+        - The bias using the averaged vector from each file
+        - The bias using the averaged vector from all files
+    '''
+    if EXP == 2:
+        for model_file in model_files:
+            model = FastText.load_fasttext_format(model_file)
+            embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
+            print("MODEL EVALUATION; {}:".format(str(model_file.rsplit('/', 1)[-1])))
+            dataset = list(read_dataset_directory('wiki-sem-500/en'))
+            score_embedding(embedding, dataset)
+            print('\n\n')
+            print("EXPERIMENTAL RESULTS - Individual Pairs:")
+            for direction_file in direction_files:
+                for words_file in words_files:
+                    pretty_print(model_file)
+                    pretty_print(direction_file)
+                    pretty_print(words_file)
+                    run_experiment_2(model, direction_file, words_file)
+                    print()
 
 if __name__ == '__main__':
     main()
