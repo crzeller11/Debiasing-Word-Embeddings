@@ -14,7 +14,9 @@ from evaluate import read_dataset_directory, score_embedding
 
 def simple_gender_direction(model, wrd_1, wrd_2):
     # ASSUMES WORD 1 IS FEMALE, WORD 2 is MALE
-    subtraction = np.array(np.subtract(model.wv[wrd_1], model.wv[wrd_2]))
+    fem_vec_norm = model.wv[wrd_1] / np.linalg.norm(model.wv[wrd_1], ord=1)
+    male_vec_norm = model.wv[wrd_2] / np.linalg.norm(model.wv[wrd_2], ord=1)
+    subtraction = np.array(np.subtract(fem_vec_norm, male_vec_norm))
     subtraction = subtraction / np.linalg.norm(subtraction, ord=1)
     return subtraction
 
@@ -38,12 +40,14 @@ def define_gender_direction_mean(model, direction_file):
         for j in range(len(male_words)):
             # MALE VECTORS
             if male_words[j] in model.wv:
-                male_sum += model.wv[male_words[j]][i]
+                male_vec_norm = model.wv[male_words[j]] / np.linalg.norm(model.wv[male_words[j]], ord=1)
+                male_sum += male_vec_norm[i]
             else:
                 num_male_words -= 1
             # FEMALE VECTORS
             if female_words[j] in model.wv:
-                fem_sum += model.wv[female_words[j]][i]
+                fem_vec_norm = model.wv[female_words[j]] / np.linalg.norm(model.wv[female_words[j]], ord=1)
+                fem_sum += fem_vec_norm[i]
             else:
                 num_fem_words -= 1
         fem_avg_vec.append(fem_sum / num_fem_words)
@@ -51,6 +55,7 @@ def define_gender_direction_mean(model, direction_file):
     fem_avg_vec = fem_avg_vec / np.linalg.norm(fem_avg_vec, ord=1)
     male_avg_vec = male_avg_vec / np.linalg.norm(male_avg_vec, ord=1)
     subtraction = np.array(np.subtract(fem_avg_vec, male_avg_vec))
+    subtraction = subtraction / np.linalg.norm(subtraction, ord=1)
     return subtraction
 
 def define_gender_direction_pca(model, direction_file):
@@ -69,14 +74,17 @@ def define_gender_direction_pca(model, direction_file):
     matrix = []
     for female_word, male_word in zip(female_words, male_words):
         if female_word in model.wv and male_word in model.wv:
-            center = (model.wv[female_word] + model.wv[male_word]) / 2
-            matrix.append(model.wv[female_word] - center)
-            matrix.append(model.wv[male_word] - center)
+            fem_vec_norm = model.wv[female_word] / np.linalg.norm(model.wv[female_word], ord=1)
+            male_vec_norm = model.wv[male_word] / np.linalg.norm(model.wv[male_word], ord=1)
+            center = (fem_vec_norm + male_vec_norm) / 2
+            matrix.append(fem_vec_norm - center)
+            matrix.append(male_vec_norm - center)
     matrix = np.array(matrix)
     pca = PCA()
     pca.fit(matrix)
     print("TYPE OF RETURNED GENDER VECTOR: {}".format(direction_file.rsplit('/', 1)[-1]))
-    return pca.components_[0]
+    pca_norm = pca.components_[0] / np.linalg.norm(pca.components_[0], ord=1)
+    return pca_norm
 
 
 def calculate_word_bias(model, direction, word, strictness=1):
