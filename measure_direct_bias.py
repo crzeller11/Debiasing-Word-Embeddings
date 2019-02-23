@@ -82,7 +82,6 @@ def define_gender_direction_pca(model, direction_file):
     matrix = np.array(matrix)
     pca = PCA()
     pca.fit(matrix)
-    print("TYPE OF RETURNED GENDER VECTOR: {}".format(direction_file.rsplit('/', 1)[-1]))
     pca_norm = pca.components_[0] / np.linalg.norm(pca.components_[0], ord=1)
     return pca_norm
 
@@ -143,7 +142,7 @@ def read_words_file(words_file):
     return words
 
 
-def run_experiment_1(model, direction_file, words_file):
+def run_experiment_1(model, direction_file, words_file, subspace_type):
     """Run a word embedding bias experiment.
 
     Arguments:
@@ -155,10 +154,13 @@ def run_experiment_1(model, direction_file, words_file):
         List: The average bias of the model, wrt pca gender subspace and averaged gender subspace.
     """
     words = read_words_file(words_file)
-    direction_pca = define_gender_direction_pca(model, direction_file)
-    direction_avg = define_gender_direction_mean(model, direction_file)
-    biases = [calculate_model_bias(model, direction_pca, words), calculate_model_bias(model, direction_avg, words)]
-    return biases
+    if subspace_type == 'MEAN':
+        direction = define_gender_direction_mean(model, direction_file)
+        bias = calculate_model_bias(model, direction, words)
+    else:
+        direction = define_gender_direction_pca(model, direction_file)
+        bias = calculate_model_bias(model, direction, words)
+    return bias
 
 def run_experiment_2(model, direction_file, words_file):
     words = read_words_file(words_file)
@@ -191,8 +193,12 @@ def pretty_print(filename):
     print(filename.rsplit('/', 1)[-1])
 
 def main():
+
     """Entry point for the project."""
-    EXP = int(input("ENTER EXPERIMENT NUMBER: "))
+    #EXP = int(input("ENTER EXPERIMENT NUMBER: "))
+    mdl = 'FastText'
+    corp = 'Wikipedia'
+    subspaces = ['MEAN', 'PCA']
     kwargs = {'supports_phrases': False,
               'google_news_normalize': False}
     build_all_fasttext_models('skipgram')
@@ -200,24 +206,27 @@ def main():
     model_files = [file for file in model_files if file.endswith('.bin')]
     direction_files = list_files(DIRECTIONS_PATH)
     words_files = list_files(WORDS_PATH)
-    if EXP == 1:
-        for model_file in model_files:
-            model = FastText.load_fasttext_format(model_file)
-            embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
-            print("MODEL EVALUATION; {}:".format(str(model_file.rsplit('/', 1)[-1])))
-            dataset = list(read_dataset_directory('wiki-sem-500/en'))
-            score_embedding(embedding, dataset)
-            print('\n\n')
-            print("EXPERIMENTAL RESULTS:")
-            for direction_file in direction_files:
-                for words_file in words_files:
-                    bias = run_experiment_1(model, direction_file, words_file)
-                    pretty_print(model_file)
-                    pretty_print(direction_file)
-                    pretty_print(words_file)
-                    print("PCA BIAS:", bias[0])
-                    print("AVERAGED BIAS:", bias[1])
-                    print()
+    #if EXP == 1:
+    print("Model Corpus Debias Gender_Words Gender_Subspace Bias_Words Bias")
+    for model_file in model_files:
+        if 'MODEL1' in model_file.rsplit('/', 1)[-1]:
+            debias = 'None'
+        else:
+            debias = 'Pronoun-Swap'
+        model = FastText.load_fasttext_format(model_file)
+        embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
+        print("MODEL EVALUATION; {}:".format(str(model_file.rsplit('/', 1)[-1])))
+        dataset = list(read_dataset_directory('wiki-sem-500/en'))
+        score_embedding(embedding, dataset)
+        for direction_file in direction_files:
+            direction = direction_file.rsplit('/', 1)[-1]
+            for words_file in words_files:
+                bias_wrds = words_file.rsplit('/', 1)[-1]
+                for g in subspaces:
+                    bias = run_experiment_1(model, direction_file, words_file, g)
+                    print(mdl, corp, debias, direction, g, bias_wrds, bias)
+
+
     '''
     Experiment 2 prints the measured direct bias for each category of gender-neutral words, on the basis of
     gender directions that are the pairwise subtractions of gender pairs.
