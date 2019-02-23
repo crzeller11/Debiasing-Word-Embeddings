@@ -31,16 +31,16 @@ def read_dataset_directory(d):
 def score_embedding(embedding, groups):
     evaluator = Evaluator(groups)
     evaluator.evaluate(embedding)
-    print("   RESULTS")
-    print("==============")
+    #print("   RESULTS")
+    #print("==============")
     print("OPP score: %f" % evaluator.opp)
     print("Accuracy: %f" % evaluator.accuracy)
-    print("---------------------------------")
-    print("Total number of test groups: %d" % evaluator.num_total_groups)
-    print("Number of filtered test groups: %d (%f%%)" % (evaluator.num_filtered_groups, evaluator.percent_filtered_groups))
-    print("Total number of non-OOV test cases: %d" % evaluator.num_cases)
-    print("Number of filtered cluster entities: %d/%d (mean per %% cluster: %f%%)" % (evaluator.num_filtered_cluster_items, evaluator.num_total_cluster_items, evaluator.percent_filtered_cluster_items))
-    print("Number of filtered outlier entities: %d/%d (mean per %% cluster: %f%%)" % (evaluator.num_filtered_outliers, evaluator.num_total_outliers, evaluator.percent_filtered_outliers))
+    #print("---------------------------------")
+    #print("Total number of test groups: %d" % evaluator.num_total_groups)
+    #print("Number of filtered test groups: %d (%f%%)" % (evaluator.num_filtered_groups, evaluator.percent_filtered_groups))
+    #print("Total number of non-OOV test cases: %d" % evaluator.num_cases)
+    #print("Number of filtered cluster entities: %d/%d (mean per %% cluster: %f%%)" % (evaluator.num_filtered_cluster_items, evaluator.num_total_cluster_items, evaluator.percent_filtered_cluster_items))
+    #print("Number of filtered outlier entities: %d/%d (mean per %% cluster: %f%%)" % (evaluator.num_filtered_outliers, evaluator.num_total_outliers, evaluator.percent_filtered_outliers))
 
 
 if __name__ == "__main__":
