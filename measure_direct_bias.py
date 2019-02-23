@@ -15,6 +15,7 @@ from evaluate import read_dataset_directory, score_embedding
 def simple_gender_direction(model, wrd_1, wrd_2):
     # ASSUMES WORD 1 IS FEMALE, WORD 2 is MALE
     subtraction = np.array(np.subtract(model.wv[wrd_1], model.wv[wrd_2]))
+    subtraction = subtraction / np.linalg.norm(subtraction, ord=1)
     return subtraction
 
 def define_gender_direction_mean(model, direction_file):
@@ -47,6 +48,8 @@ def define_gender_direction_mean(model, direction_file):
                 num_fem_words -= 1
         fem_avg_vec.append(fem_sum / num_fem_words)
         male_avg_vec.append(male_sum / num_male_words)
+    fem_avg_vec = fem_avg_vec / np.linalg.norm(fem_avg_vec, ord=1)
+    male_avg_vec = male_avg_vec / np.linalg.norm(male_avg_vec, ord=1)
     subtraction = np.array(np.subtract(fem_avg_vec, male_avg_vec))
     return subtraction
 
@@ -214,7 +217,7 @@ def main():
         - The bias using each one of the pairs alone
         - The bias using the averaged vector from each file
         - The bias using the averaged vector from all files
-    '''
+
     if EXP == 2:
         for model_file in model_files:
             model = FastText.load_fasttext_format(model_file)
@@ -231,6 +234,7 @@ def main():
                     pretty_print(words_file)
                     run_experiment_2(model, direction_file, words_file)
                     print()
+    '''
 
 if __name__ == '__main__':
     main()
