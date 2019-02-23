@@ -63,17 +63,15 @@ def define_gender_direction_pca(model, direction_file):
     """
     with open(direction_file) as fd:
         male_words, female_words = list(zip(*(line.split() for line in fd)))
-    female_vectors = []
-    male_vectors = []
+    matrix = []
     for female_word, male_word in zip(female_words, male_words):
         if female_word in model.wv and male_word in model.wv:
-            female_vectors.append(model.wv[female_word])
-            male_vectors.append(model.wv[male_word])
-    subtraction = np.array([
-        np.subtract(female, male) for female, male in zip(female_vectors, male_vectors)
-    ])
+            center = (model.wv[female_word] + model.wv[male_word]) / 2
+            matrix.append(model.wv[female_word] - center)
+            matrix.append(model.wv[male_word] - center)
+    matrix = np.array(matrix)
     pca = PCA()
-    pca.fit(subtraction)
+    pca.fit(matrix)
     print("TYPE OF RETURNED GENDER VECTOR: {}".format(direction_file.rsplit('/', 1)[-1]))
     return pca.components_[0]
 
