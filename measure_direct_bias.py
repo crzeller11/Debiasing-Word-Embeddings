@@ -295,7 +295,7 @@ def pretty_print(filename):
 
 def main():
     """Entry point for the project."""
-    #experiment_1_results()
+    experiment_1_results()
     experiment_2_results()
 
 
