@@ -20,7 +20,8 @@ def simple_gender_direction(model, wrd_1, wrd_2):
     subtraction = subtraction / np.linalg.norm(subtraction, ord=1)
     return subtraction
 
-def define_gender_direction_mean(model, direction_file):
+# Could pass a nester list of
+def define_gender_direction_mean(model, male_words, female_words):
     """
     Create a gender direction by averaging dimensions of all gender words.
 
@@ -31,8 +32,6 @@ def define_gender_direction_mean(model, direction_file):
     Returns:
          Vector: a male->female vector.
     """
-    with open(direction_file) as fd:
-        male_words, female_words = list(zip(*(line.split() for line in fd)))
     fem_avg_vec, male_avg_vec = [],[]
     num_male_words, num_fem_words = len(male_words),len(female_words)
     for i in range(len(model.wv[female_words[0]])): # loop through all dimensions
@@ -141,6 +140,14 @@ def read_words_file(words_file):
             words.extend(line.split())
     return words
 
+def load_data():
+    build_all_fasttext_models('skipgram')
+    model_files = list_files(MODELS_PATH)
+    model_files = [file for file in model_files if file.endswith('.bin')]
+    direction_files = list_files(DIRECTIONS_PATH)
+    words_files = list_files(WORDS_PATH)
+    return model_files, direction_files, words_files
+
 
 def run_experiment_1(model, direction_file, words_file, subspace_type):
     """Run a word embedding bias experiment.
@@ -153,23 +160,117 @@ def run_experiment_1(model, direction_file, words_file, subspace_type):
     Returns:
         List: The average bias of the model, wrt pca gender subspace and averaged gender subspace.
     """
+    with open(direction_file) as fd:
+        male_words, female_words = list(zip(*(line.split() for line in fd)))
     words = read_words_file(words_file)
     if subspace_type == 'MEAN':
-        direction = define_gender_direction_mean(model, direction_file)
+        direction = define_gender_direction_mean(model, male_words, female_words)
         bias = calculate_model_bias(model, direction, words)
     else:
         direction = define_gender_direction_pca(model, direction_file)
         bias = calculate_model_bias(model, direction, words)
     return bias
 
-def run_experiment_2(model, direction_file, words_file):
+def experiment_1_results():
+    mdl = 'FastText'
+    corp = 'Wikipedia'
+    subspaces = ['MEAN', 'PCA']
+    kwargs = {'supports_phrases': False,
+              'google_news_normalize': False}
+    model_files, direction_files, words_files = load_data()
+    print("Model Corpus Debias Gender_Words Gender_Subspace Bias_Words Bias Evaluation_OPP Evaluation_Accuracy")
+    for model_file in model_files:
+        if 'MODEL1' in model_file.rsplit('/', 1)[-1]:
+            debias = 'None'
+        else:
+            debias = 'Pronoun-Swap'
+        model = FastText.load_fasttext_format(model_file)
+        embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
+        print("MODEL EVALUATION; {}:".format(str(model_file.rsplit('/', 1)[-1])))
+        dataset = list(read_dataset_directory('wiki-sem-500/en'))
+        opp, accuracy = score_embedding(embedding, dataset)
+        for direction_file in direction_files:
+            direction = direction_file.rsplit('/', 1)[-1]
+            for word_file in words_files:
+                bias_words = word_file.rsplit('/', 1)[-1]
+                for g in subspaces:
+                    bias = run_experiment_1(model, direction_file, word_file, g)
+                    print(mdl, corp, debias, direction, g, bias_words, bias, opp, accuracy)
+
+def run_experiment_2(model, male_words, female_words, words_file):
     words = read_words_file(words_file)
-    with open(direction_file) as fd:
-        male_words, female_words = list(zip(*(line.split() for line in fd)))
-    for i in range(len(male_words)):
-        print('GENDER DIRECTION:', female_words[i], male_words[i])
-        direction = simple_gender_direction(model, female_words[i], male_words[i])
-        print("GENDER BIAS:", calculate_model_bias(model, direction, words))
+    # FIXME: passing a singular word right now
+    direction = define_gender_direction_mean(model, male_words, female_words)
+    bias = calculate_model_bias(model, direction, words)
+    return bias
+
+def experiment_2_results():
+    '''
+    All the words together
+    Words in one group
+    Pair by pair for all different kinds of gender pairs
+    :return:
+    '''
+    model_files, direction_files, words_files = load_data()
+    mdl = 'FastText'
+    corp = 'Wikipedia'
+    subspace = 'MEAN'
+    # PAIR BY PAIR
+    word_group = 'pairwise'
+    print("PAIR BY PAIR")
+    print("------------")
+    print("Model Corpus Debias Gender_Word_Group Gender_Subspace Bias_Words Bias")
+    for direction_file in direction_files:
+        with open(direction_file) as fd:
+            male_words, female_words = list(zip(*(line.split() for line in fd)))
+        for i in range(len(male_words)):
+            print(male_words[i], female_words[i])
+            for model in model_files:
+                if 'MODEL1' in model.rsplit('/', 1)[-1]:
+                    debias = 'None'
+                else:
+                    debias = 'Pronoun-Swap'
+                for words_file in words_files:
+                    bias_words = words_file.rsplit('/', 1)[-1]
+                    direction = simple_gender_direction(model, female_words[i], male_words[i])
+                    bias = calculate_model_bias(model, direction, words_file)
+                    print(mdl, corp, debias, word_group, subspace, bias_words, bias)
+    # WORDS IN ONE FILE
+    print("FILE BY FILE")
+    print('------------')
+    print("Model Corpus Debias Gender_Word_Group Gender_Subspace Bias_Words Bias")
+    for direction_file in direction_files:
+        print(direction_file.rsplit('/',1)[-1])
+        with open(direction_file) as fd:
+            male_words, female_words = list(zip(*(line.split() for line in fd)))
+        for model in model_files:
+            if 'MODEL1' in model.rsplit('/', 1)[-1]:
+                debias = 'None'
+            else:
+                debias = 'Pronoun-Swap'
+            for words_file in words_files:
+                bias_words = words_file.rsplit('/', 1)[-1]
+                bias = run_experiment_2(model, male_words, female_words, words_file)
+                print(mdl, corp, debias, word_group, subspace, bias_words, bias)
+    # ALL WORDS TOGETHER
+    print('ALL WORDS')
+    print('---------')
+    print("Model Corpus Debias Gender_Word_Group Gender_Subspace Bias_Words Bias")
+    male_words, female_words = [], []
+    for direction_file in direction_files:
+        with open(direction_file) as fd:
+            all_words = list(zip(*(line.split() for line in fd)))
+            male_words.append(all_words[0])
+            female_words.append(all_words[1])
+    for model in model_files:
+        if 'MODEL1' in model.rsplit('/', 1)[-1]:
+            debias = 'None'
+        else:
+            debias = 'Pronoun-Swap'
+        for words_file in words_files:
+            bias_words = words_file.rsplit('/', 1)[-1]
+            bias = run_experiment_2(model, male_words, female_words, words_file)
+            print(mdl, corp, debias, word_group, subspace, bias_words, bias)
 
 
 
@@ -193,65 +294,10 @@ def pretty_print(filename):
     print(filename.rsplit('/', 1)[-1])
 
 def main():
-
     """Entry point for the project."""
-    #EXP = int(input("ENTER EXPERIMENT NUMBER: "))
-    mdl = 'FastText'
-    corp = 'Wikipedia'
-    subspaces = ['MEAN', 'PCA']
-    kwargs = {'supports_phrases': False,
-              'google_news_normalize': False}
-    build_all_fasttext_models('skipgram')
-    model_files = list_files(MODELS_PATH)
-    model_files = [file for file in model_files if file.endswith('.bin')]
-    direction_files = list_files(DIRECTIONS_PATH)
-    words_files = list_files(WORDS_PATH)
-    #if EXP == 1:
-    print("Model Corpus Debias Gender_Words Gender_Subspace Bias_Words Bias")
-    for model_file in model_files:
-        if 'MODEL1' in model_file.rsplit('/', 1)[-1]:
-            debias = 'None'
-        else:
-            debias = 'Pronoun-Swap'
-        model = FastText.load_fasttext_format(model_file)
-        embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
-        print("MODEL EVALUATION; {}:".format(str(model_file.rsplit('/', 1)[-1])))
-        dataset = list(read_dataset_directory('wiki-sem-500/en'))
-        score_embedding(embedding, dataset)
-        for direction_file in direction_files:
-            direction = direction_file.rsplit('/', 1)[-1]
-            for words_file in words_files:
-                bias_wrds = words_file.rsplit('/', 1)[-1]
-                for g in subspaces:
-                    bias = run_experiment_1(model, direction_file, words_file, g)
-                    print(mdl, corp, debias, direction, g, bias_wrds, bias)
+    #experiment_1_results()
+    experiment_2_results()
 
-
-    '''
-    Experiment 2 prints the measured direct bias for each category of gender-neutral words, on the basis of
-    gender directions that are the pairwise subtractions of gender pairs.
-    It should generate:
-        - The bias using each one of the pairs alone
-        - The bias using the averaged vector from each file
-        - The bias using the averaged vector from all files
-
-    if EXP == 2:
-        for model_file in model_files:
-            model = FastText.load_fasttext_format(model_file)
-            embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
-            print("MODEL EVALUATION; {}:".format(str(model_file.rsplit('/', 1)[-1])))
-            dataset = list(read_dataset_directory('wiki-sem-500/en'))
-            score_embedding(embedding, dataset)
-            print('\n\n')
-            print("EXPERIMENTAL RESULTS - Individual Pairs:")
-            for direction_file in direction_files:
-                for words_file in words_files:
-                    pretty_print(model_file)
-                    pretty_print(direction_file)
-                    pretty_print(words_file)
-                    run_experiment_2(model, direction_file, words_file)
-                    print()
-    '''
 
 if __name__ == '__main__':
     main()

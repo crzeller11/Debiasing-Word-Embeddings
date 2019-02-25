@@ -33,8 +33,9 @@ def score_embedding(embedding, groups):
     evaluator.evaluate(embedding)
     #print("   RESULTS")
     #print("==============")
-    print("OPP score: %f" % evaluator.opp)
-    print("Accuracy: %f" % evaluator.accuracy)
+    #print("OPP score: %f" % evaluator.opp)
+    #print("Accuracy: %f" % evaluator.accuracy)
+    return [evaluator.opp, evaluator.accuracy]
     #print("---------------------------------")
     #print("Total number of test groups: %d" % evaluator.num_total_groups)
     #print("Number of filtered test groups: %d (%f%%)" % (evaluator.num_filtered_groups, evaluator.percent_filtered_groups))
