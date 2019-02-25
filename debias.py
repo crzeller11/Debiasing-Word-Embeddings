@@ -44,7 +44,7 @@ def main():
     definitional_filename = 'definitional_pairs.json'
     gendered_words_filename = ''
     equalize_filename = 'equalize_pairs.json'
-    debiased_filename = ''
+    #debiased_filename = ''
     with open(definitional_filename, "r") as f:
         defs = json.load(f)
     with open(equalize_filename, "r") as f:
@@ -53,11 +53,12 @@ def main():
         gender_specific_words = json.load(f)
     E = we.WordEmbedding(embedding_filename)
     debias(E, gender_specific_words, defs, equalize_pairs)
+    '''
     if embedding_filename[-4:] == debiased_filename[-4:] == ".bin":
         E.save_w2v(debiased_filename)
     else:
         E.save(debiased_filename)
-
+    '''
 
 if __name__ == "__main__":
     main()

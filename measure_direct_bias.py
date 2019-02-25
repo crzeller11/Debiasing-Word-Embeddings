@@ -148,6 +148,13 @@ def load_data():
     words_files = list_files(WORDS_PATH)
     return model_files, direction_files, words_files
 
+def run_model_evaluation(model_file, ):
+    kwargs = {'supports_phrases': False,
+              'google_news_normalize': False}
+    embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
+    dataset = list(read_dataset_directory('wiki-sem-500/en'))
+    opp, accuracy = score_embedding(embedding, dataset)
+    return opp, accuracy
 
 def run_experiment_1(model, direction_file, words_file, subspace_type):
     """Run a word embedding bias experiment.
@@ -175,8 +182,6 @@ def experiment_1_results():
     mdl = 'FastText'
     corp = 'Wikipedia'
     subspaces = ['MEAN', 'PCA']
-    kwargs = {'supports_phrases': False,
-              'google_news_normalize': False}
     model_files, direction_files, words_files = load_data()
     print("Model Corpus Debias Gender_Words Gender_Subspace Bias_Words Bias Evaluation_OPP Evaluation_Accuracy")
     for model_file in model_files:
@@ -185,10 +190,7 @@ def experiment_1_results():
         else:
             debias = 'Pronoun-Swap'
         model = FastText.load_fasttext_format(model_file)
-        embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
-        print("MODEL EVALUATION; {}:".format(str(model_file.rsplit('/', 1)[-1])))
-        dataset = list(read_dataset_directory('wiki-sem-500/en'))
-        opp, accuracy = score_embedding(embedding, dataset)
+        opp, accuracy = run_model_evaluation(model_file)
         for direction_file in direction_files:
             direction = direction_file.rsplit('/', 1)[-1]
             for word_file in words_files:
@@ -225,11 +227,12 @@ def experiment_2_results():
             male_words, female_words = list(zip(*(line.split() for line in fd)))
         for i in range(len(male_words)):
             print(male_words[i], female_words[i])
-            for model in model_files:
-                if 'MODEL1' in model.rsplit('/', 1)[-1]:
+            for model_file in model_files:
+                if 'MODEL1' in model_file.rsplit('/', 1)[-1]:
                     debias = 'None'
                 else:
                     debias = 'Pronoun-Swap'
+                model = FastText.load_fasttext_format(model_file)
                 for words_file in words_files:
                     bias_words = words_file.rsplit('/', 1)[-1]
                     direction = simple_gender_direction(model, female_words[i], male_words[i])
@@ -243,11 +246,12 @@ def experiment_2_results():
         print(direction_file.rsplit('/',1)[-1])
         with open(direction_file) as fd:
             male_words, female_words = list(zip(*(line.split() for line in fd)))
-        for model in model_files:
-            if 'MODEL1' in model.rsplit('/', 1)[-1]:
+        for model_file in model_files:
+            if 'MODEL1' in model_file.rsplit('/', 1)[-1]:
                 debias = 'None'
             else:
                 debias = 'Pronoun-Swap'
+            model = FastText.load_fasttext_format(model_file)
             for words_file in words_files:
                 bias_words = words_file.rsplit('/', 1)[-1]
                 bias = run_experiment_2(model, male_words, female_words, words_file)
@@ -262,11 +266,12 @@ def experiment_2_results():
             all_words = list(zip(*(line.split() for line in fd)))
             male_words.append(all_words[0])
             female_words.append(all_words[1])
-    for model in model_files:
-        if 'MODEL1' in model.rsplit('/', 1)[-1]:
+    for model_file in model_files:
+        if 'MODEL1' in model_file.rsplit('/', 1)[-1]:
             debias = 'None'
         else:
             debias = 'Pronoun-Swap'
+        model = FastText.load_fasttext_format(model_file)
         for words_file in words_files:
             bias_words = words_file.rsplit('/', 1)[-1]
             bias = run_experiment_2(model, male_words, female_words, words_file)
@@ -295,7 +300,7 @@ def pretty_print(filename):
 
 def main():
     """Entry point for the project."""
-    experiment_1_results()
+    #experiment_1_results()
     experiment_2_results()
 
 
