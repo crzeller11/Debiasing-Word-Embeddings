@@ -213,69 +213,60 @@ def experiment_2_results():
     Pair by pair for all different kinds of gender pairs
     :return:
     '''
+    # INITIALIZATIONS
     model_files, direction_files, words_files = load_data()
     mdl = 'FastText'
     corp = 'Wikipedia'
     subspace = 'MEAN'
+    # Load all models first to avoid reloading them throughout the experiment
+    MDLS = []
+    debias = []
+    for model_file in model_files:
+        MDLS.append(FastText.load_fasttext_format(model_file))
+        if 'MODEL1' in model_file.rsplit('/', 1)[-1]:
+            debias.append('None')
+        else:
+            debias.append('Pronoun-Swap')
+    print("Model Corpus Debias Gender_Word_Group Gender_Subspace Bias_Words Bias")
+    
     # PAIR BY PAIR
     word_group = 'pairwise'
-    print("PAIR BY PAIR")
-    print("------------")
-    print("Model Corpus Debias Gender_Word_Group Gender_Subspace Bias_Words Bias")
+
     for direction_file in direction_files:
         with open(direction_file) as fd:
             male_words, female_words = list(zip(*(line.split() for line in fd)))
         for i in range(len(male_words)):
             print(male_words[i], female_words[i])
-            for model_file in model_files:
-                if 'MODEL1' in model_file.rsplit('/', 1)[-1]:
-                    debias = 'None'
-                else:
-                    debias = 'Pronoun-Swap'
-                model = FastText.load_fasttext_format(model_file)
+            for j in range(len(MDLS)):
                 for words_file in words_files:
                     bias_words = words_file.rsplit('/', 1)[-1]
-                    direction = simple_gender_direction(model, female_words[i], male_words[i])
-                    bias = calculate_model_bias(model, direction, words_file)
-                    print(mdl, corp, debias, word_group, subspace, bias_words, bias)
+                    direction = simple_gender_direction(MDLS[j], female_words[i], male_words[i])
+                    bias = calculate_model_bias(MDLS[j], direction, words_file)
+                    print(word_group, mdl, corp, debias[j], subspace, bias_words, bias)
     # WORDS IN ONE FILE
-    print("FILE BY FILE")
-    print('------------')
-    print("Model Corpus Debias Gender_Word_Group Gender_Subspace Bias_Words Bias")
+    word_group = 'file'
     for direction_file in direction_files:
         print(direction_file.rsplit('/',1)[-1])
         with open(direction_file) as fd:
             male_words, female_words = list(zip(*(line.split() for line in fd)))
-        for model_file in model_files:
-            if 'MODEL1' in model_file.rsplit('/', 1)[-1]:
-                debias = 'None'
-            else:
-                debias = 'Pronoun-Swap'
-            model = FastText.load_fasttext_format(model_file)
+        for i in range(len(MDLS)):
             for words_file in words_files:
                 bias_words = words_file.rsplit('/', 1)[-1]
-                bias = run_experiment_2(model, male_words, female_words, words_file)
-                print(mdl, corp, debias, word_group, subspace, bias_words, bias)
+                bias = run_experiment_2(MDLS[i], male_words, female_words, words_file)
+                print(word_group, mdl, corp, debias[i], subspace, bias_words, bias)
     # ALL WORDS TOGETHER
-    print('ALL WORDS')
-    print('---------')
-    print("Model Corpus Debias Gender_Word_Group Gender_Subspace Bias_Words Bias")
+    word_group = 'all'
     male_words, female_words = [], []
     for direction_file in direction_files:
         with open(direction_file) as fd:
             all_words = list(zip(*(line.split() for line in fd)))
-            male_words.append(all_words[0])
-            female_words.append(all_words[1])
-    for model_file in model_files:
-        if 'MODEL1' in model_file.rsplit('/', 1)[-1]:
-            debias = 'None'
-        else:
-            debias = 'Pronoun-Swap'
-        model = FastText.load_fasttext_format(model_file)
+            male_words.extend(all_words[0])
+            female_words.extend(all_words[1])
+    for i in range(len(MDLS)):
         for words_file in words_files:
             bias_words = words_file.rsplit('/', 1)[-1]
-            bias = run_experiment_2(model, male_words, female_words, words_file)
-            print(mdl, corp, debias, word_group, subspace, bias_words, bias)
+            bias = run_experiment_2(MDLS[i], male_words, female_words, words_file)
+            print(word_group, mdl, corp, debias[i], subspace, bias_words, bias)
 
 
 
