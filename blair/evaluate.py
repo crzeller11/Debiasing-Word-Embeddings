@@ -27,10 +27,10 @@ Adapted by Chloe Zeller, February 2019
 
 import sys
 
-from src.evaluator import Evaluator
-from src.embeddings import Embedding, WrappedEmbedding
-from src.outlier_test_group import TestGroup
-from src.utils import scandir
+from .src.evaluator import Evaluator
+from .src.embeddings import Embedding, WrappedEmbedding
+from .src.outlier_test_group import TestGroup
+from .src.utils import scandir
 
 
 def read_dataset_directory(d):
