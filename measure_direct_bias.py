@@ -8,8 +8,8 @@ from sklearn.decomposition import PCA
 from util import CORPORA_PATH, MODELS_PATH, DIRECTIONS_PATH, WORDS_PATH, list_files
 from transform_corpus import create_pronoun_swapped_corpus
 
-from src.embeddings import Embedding, WrappedEmbedding
-from evaluate import read_dataset_directory, score_embedding
+from blair.src.embeddings import WrappedEmbedding
+from blair.evaluate import read_dataset_directory, score_embedding
 
 
 def simple_gender_direction(model, wrd_1, wrd_2):
