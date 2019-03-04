@@ -40,11 +40,11 @@ def debias(E, gender_specific_words, definitional, equalize):
     E.normalize()
 
 def main():
-    embedding_filename = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/models/NETWORK2MODEL1.bin'
-    definitional_filename = 'definitional_pairs.json'
-    gendered_words_filename = 'gender_specific_full.json'
-    equalize_filename = 'equalize_pairs.json'
-    debiased_filename = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/models/bolukbasi_hard_biased_model.bin'
+    embedding_filename = 'models/NETWORK2MODEL1.bin'
+    definitional_filename = 'data/definitional_pairs.json'
+    gendered_words_filename = 'data/gender_specific_full.json'
+    equalize_filename = 'data/equalize_pairs.json'
+    debiased_filename = 'models/bolukbasi_hard_biased_model.bin'
     with open(definitional_filename, "r") as f:
         defs = json.load(f)
     with open(equalize_filename, "r") as f:
