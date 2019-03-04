@@ -40,11 +40,11 @@ def debias(E, gender_specific_words, definitional, equalize):
     E.normalize()
 
 def main():
-    embedding_filename = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/fastText/NETWORK2MODEL1.bin'
+    embedding_filename = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/models/NETWORK2MODEL1.bin'
     definitional_filename = 'definitional_pairs.json'
-    gendered_words_filename = ''
+    gendered_words_filename = 'gender_specific_full.json'
     equalize_filename = 'equalize_pairs.json'
-    #debiased_filename = ''
+    debiased_filename = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/models/bolukbasi_hard_biased_model.bin'
     with open(definitional_filename, "r") as f:
         defs = json.load(f)
     with open(equalize_filename, "r") as f:
@@ -54,11 +54,14 @@ def main():
     E = we.WordEmbedding(embedding_filename)
     debias(E, gender_specific_words, defs, equalize_pairs)
     '''
+    Not sure if I understand why we wouldn't save another copy of this model. If we don't, then we won't have an
+    embedding to compared to the debiased version
+    '''
     if embedding_filename[-4:] == debiased_filename[-4:] == ".bin":
         E.save_w2v(debiased_filename)
     else:
         E.save(debiased_filename)
-    '''
+
 
 if __name__ == "__main__":
     main()

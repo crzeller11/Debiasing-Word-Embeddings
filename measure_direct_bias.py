@@ -183,7 +183,6 @@ def experiment_1_results():
     corp = 'Wikipedia'
     subspaces = ['MEAN', 'PCA']
     model_files, direction_files, words_files = load_data()
-    print("Model Corpus Debias Gender_Words Gender_Subspace Bias_Words Bias Evaluation_OPP Evaluation_Accuracy")
     for model_file in model_files:
         if 'MODEL1' in model_file.rsplit('/', 1)[-1]:
             debias = 'None'
@@ -228,7 +227,7 @@ def experiment_2_results():
         else:
             debias.append('Pronoun-Swap')
     print("Model Corpus Debias Gender_Word_Group Gender_Subspace Bias_Words Bias")
-    
+
     # PAIR BY PAIR
     word_group = 'pairwise'
 
@@ -291,8 +290,8 @@ def pretty_print(filename):
 
 def main():
     """Entry point for the project."""
-    #experiment_1_results()
-    experiment_2_results()
+    experiment_1_results()
+    #experiment_2_results()
 
 
 if __name__ == '__main__':

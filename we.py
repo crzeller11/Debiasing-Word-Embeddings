@@ -51,14 +51,13 @@ class WordEmbedding:
         self.desc = fname
         print("*** Reading data from " + fname)
         if fname.endswith(".bin"):
-            import gensim.models
-            model =gensim.models.KeyedVectors.load_word2vec_format(fname, binary=True)
-            words = sorted([w for w in model.vocab], key=lambda w: model.vocab[w].index)
-            vecs = [model[w] for w in words]
+            from gensim.models import FastText
+            model = FastText.load_fasttext_format(fname)
+            words = sorted(list(model.wv.vocab))
+            vecs = np.asarray([model.wv[word] for word in words], dtype=np.float32)
         else:
             vecs = []
             words = []
-
             with open(fname, "r", encoding='utf8') as f:
                 for line in f:
                     s = line.split()
@@ -69,7 +68,7 @@ class WordEmbedding:
     #                 v /= np.linalg.norm(v)
                     words.append(s[0])
                     vecs.append(v)
-        self.vecs = np.array(vecs, dtype='float32')
+        self.vecs = vecs
         print(self.vecs.shape)
         self.words = words
         self.reindex()
@@ -85,6 +84,7 @@ class WordEmbedding:
         print(self.n, "words of dimension", self.d, ":", ", ".join(self.words[:4] + ["..."] + self.words[-4:]))
 
     def v(self, word):
+        word = word.lower()
         return self.vecs[self.index[word]]
 
     def diff(self, word1, word2):
