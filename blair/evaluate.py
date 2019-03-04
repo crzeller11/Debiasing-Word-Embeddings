@@ -14,6 +14,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+"""
+Adapted from https://github.com/belph/wiki-sem-500
+
+Automated Generation of Multilingual Clusters for the Evaluation of Distributed Representations},
+Philip Blair and Yuval Merhav and Joel Barry},
+2016
+
+Adapted by Chloe Zeller, February 2019
+"""
+
 import sys
 
 from src.evaluator import Evaluator

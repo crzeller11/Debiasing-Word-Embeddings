@@ -1,3 +1,13 @@
+"""
+Adapted from https://github.com/tolga-b/debiaswe
+
+Man is to Computer Programmer as Woman is to Homemaker? Debiasing Word Embeddings
+Tolga Bolukbasi, Kai-Wei Chang, James Zou, Venkatesh Saligrama, and Adam Kalai
+2016
+
+Adapted by Chloe Zeller, February 2019
+"""
+
 from __future__ import print_function, division
 import we
 import json
@@ -6,15 +16,6 @@ import sys
 if sys.version_info[0] < 3:
     import io
     open = io.open
-"""
-Hard-debias embedding
-
-Man is to Computer Programmer as Woman is to Homemaker? Debiasing Word Embeddings
-Tolga Bolukbasi, Kai-Wei Chang, James Zou, Venkatesh Saligrama, and Adam Kalai
-2016
-
-Adapted by Chloe Zeller, February 2019
-"""
 
 
 def debias(E, gender_specific_words, definitional, equalize):
