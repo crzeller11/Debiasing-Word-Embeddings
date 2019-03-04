@@ -2,23 +2,16 @@ import os
 import subprocess
 
 import numpy as np
-from gensim.models import FastText
 from sklearn.decomposition import PCA
 
 from util import CORPORA_PATH, MODELS_PATH, DIRECTIONS_PATH, WORDS_PATH, list_files
 from transform_corpus import create_pronoun_swapped_corpus
 
-from src.embeddings import Embedding, WrappedEmbedding
-from evaluate import read_dataset_directory, score_embedding
+from permspace import PermutationSpace
 
+from blair import WrappedEmbedding
+from blair import read_dataset_directory, score_embedding
 
-def simple_gender_direction(model, wrd_1, wrd_2):
-    # ASSUMES WORD 1 IS FEMALE, WORD 2 is MALE
-    fem_vec_norm = model.wv[wrd_1] / np.linalg.norm(model.wv[wrd_1], ord=1)
-    male_vec_norm = model.wv[wrd_2] / np.linalg.norm(model.wv[wrd_2], ord=1)
-    subtraction = np.array(np.subtract(fem_vec_norm, male_vec_norm))
-    subtraction = subtraction / np.linalg.norm(subtraction, ord=1)
-    return subtraction
 
 # Could pass a nester list of
 def define_gender_direction_mean(model, male_words, female_words):
@@ -32,23 +25,38 @@ def define_gender_direction_mean(model, male_words, female_words):
     Returns:
          Vector: a male->female vector.
     """
-    fem_avg_vec, male_avg_vec = [],[]
-    num_male_words, num_fem_words = len(male_words),len(female_words)
-    for i in range(len(model.wv[female_words[0]])): # loop through all dimensions
+    fem_avg_vec, male_avg_vec = [], []
+    num_male_words, num_fem_words = len(male_words), len(female_words)
+    num_dimensions = len(model.get_vector('feminism'))
+    # FIXME
+    # for female, male in zip(words...):
+    #     female_word = ...
+    #     male_word = ...
+    #     if either if not found:
+    #         continue
+    #     vectors.append(...)
+    # average = vectors...
+    for dim in range(num_dimensions): # loop through all dimensions
         fem_sum, male_sum = 0, 0
-        for j in range(len(male_words)):
+        for male_word, female_word in zip(male_words, female_words):
             # MALE VECTORS
-            if male_words[j] in model.wv:
-                male_vec_norm = model.wv[male_words[j]] / np.linalg.norm(model.wv[male_words[j]], ord=1)
-                male_sum += male_vec_norm[i]
+            if male_word in model:
+                male_vec_norm = model.get_vector(male_word) / np.linalg.norm(model.get_vector(male_word), ord=1)
+                male_sum += male_vec_norm[dim]
             else:
                 num_male_words -= 1
             # FEMALE VECTORS
-            if female_words[j] in model.wv:
-                fem_vec_norm = model.wv[female_words[j]] / np.linalg.norm(model.wv[female_words[j]], ord=1)
-                fem_sum += fem_vec_norm[i]
+            if female_word in model:
+                fem_vec_norm = model.get_vector(female_word) / np.linalg.norm(model.get_vector(female_word), ord=1)
+                fem_sum += fem_vec_norm[dim]
             else:
                 num_fem_words -= 1
+        if num_male_words == 0 or num_fem_words == 0:
+            # FIXME deal with failing to find the male/female words
+            pass
+        elif num_male_words != num_fem_words:
+            # FIXME deal with different numbers of male/female words
+            pass
         fem_avg_vec.append(fem_sum / num_fem_words)
         male_avg_vec.append(male_sum / num_male_words)
     fem_avg_vec = fem_avg_vec / np.linalg.norm(fem_avg_vec, ord=1)
@@ -57,7 +65,8 @@ def define_gender_direction_mean(model, male_words, female_words):
     subtraction = subtraction / np.linalg.norm(subtraction, ord=1)
     return subtraction
 
-def define_gender_direction_pca(model, direction_file):
+
+def define_gender_direction_pca(model, male_words, female_words):
     """
     Create a gender direction using PCA.
 
@@ -68,13 +77,11 @@ def define_gender_direction_pca(model, direction_file):
     Returns:
         Vector: A male->female vector.
     """
-    with open(direction_file) as fd:
-        male_words, female_words = list(zip(*(line.split() for line in fd)))
     matrix = []
     for female_word, male_word in zip(female_words, male_words):
-        if female_word in model.wv and male_word in model.wv:
-            fem_vec_norm = model.wv[female_word] / np.linalg.norm(model.wv[female_word], ord=1)
-            male_vec_norm = model.wv[male_word] / np.linalg.norm(model.wv[male_word], ord=1)
+        if female_word in model and male_word in model:
+            fem_vec_norm = model.get_vector(female_word) / np.linalg.norm(model.get_vector(female_word), ord=1)
+            male_vec_norm = model.get_vector(male_word) / np.linalg.norm(model.get_vector(male_word), ord=1)
             center = (fem_vec_norm + male_vec_norm) / 2
             matrix.append(fem_vec_norm - center)
             matrix.append(male_vec_norm - center)
@@ -97,9 +104,9 @@ def calculate_word_bias(model, direction, word, strictness=1):
     Returns:
         float: The bias of the word.
     """
-    if word not in model.wv:
+    if word not in model:
         return None
-    word_vector = model.wv[word] / np.linalg.norm(model.wv[word], ord=1)
+    word_vector = model.get_vector(word) / np.linalg.norm(model.get_vector(word), ord=1)
     direction_vector = direction / np.linalg.norm(direction, ord=1)
     return np.dot(word_vector, direction_vector)**strictness
 
@@ -119,7 +126,7 @@ def calculate_model_bias(model, direction, words, strictness=1):
     abs_total = 0
     count = 0
     for word in words:
-        if word in model.wv:
+        if word in model:
             count += 1
             abs_total += abs(calculate_word_bias(model, direction, word, strictness=strictness))
     return abs_total / count
@@ -140,6 +147,7 @@ def read_words_file(words_file):
             words.extend(line.split())
     return words
 
+
 def load_data():
     build_all_fasttext_models('skipgram')
     model_files = list_files(MODELS_PATH)
@@ -147,6 +155,7 @@ def load_data():
     direction_files = list_files(DIRECTIONS_PATH)
     words_files = list_files(WORDS_PATH)
     return model_files, direction_files, words_files
+
 
 def run_model_evaluation(model_file, ):
     kwargs = {'supports_phrases': False,
@@ -156,117 +165,108 @@ def run_model_evaluation(model_file, ):
     opp, accuracy = score_embedding(embedding, dataset)
     return opp, accuracy
 
-def run_experiment_1(model, direction_file, words_file, subspace_type):
-    """Run a word embedding bias experiment.
+
+def load_debaised_model(model, debias):
+    """Load a debiased word embedding model.
 
     Arguments:
-        model (Model): A Gensim word embedding model.
-        direction_file (str): A file path of direction word pairs.
-        words_file (str): A file path of neutral words.
+        model (str): The model algorithm used.
+        debias (str): The debiassing method used.
 
     Returns:
-        List: The average bias of the model, wrt pca gender subspace and averaged gender subspace.
+        Mapping[str, Vector]: A word embedding..
     """
-    with open(direction_file) as fd:
-        male_words, female_words = list(zip(*(line.split() for line in fd)))
-    words = read_words_file(words_file)
-    if subspace_type == 'MEAN':
-        direction = define_gender_direction_mean(model, male_words, female_words)
-        bias = calculate_model_bias(model, direction, words)
+    # FIXME deal with model algo
+    kwargs = {
+        'supports_phrases': False,
+        'google_news_normalize': False,
+    }
+    if debias == 'none':
+        return WrappedEmbedding.from_fasttext('models/fasttext-biased.bin', **kwargs)
+    elif debias == 'wordswap':
+        return WrappedEmbedding.from_fasttext('models/fasttext-wordswapped.bin', **kwargs)
+    elif debias == 'bolukbasi':
+        return WrappedEmbedding.from_word2vec('models/fasttext-bolukbasi.bin', **kwargs)
     else:
-        direction = define_gender_direction_pca(model, direction_file)
-        bias = calculate_model_bias(model, direction, words)
-    return bias
+        raise ValueError('unrecognized model/debiasing pair: {}, {}'.format(
+            model, debias
+        ))
 
-def experiment_1_results():
-    mdl = 'FastText'
-    corp = 'Wikipedia'
-    subspaces = ['MEAN', 'PCA']
-    model_files, direction_files, words_files = load_data()
-    for model_file in model_files:
-        if 'MODEL1' in model_file.rsplit('/', 1)[-1]:
-            debias = 'None'
-        else:
-            debias = 'Pronoun-Swap'
-        model = FastText.load_fasttext_format(model_file)
-        opp, accuracy = run_model_evaluation(model_file)
+
+def load_subspace_pairs(subspace_pairs):
+    """Load the pairs used for gender subspace definition.
+
+    Returns:
+        List[List[Tuple[str, str]]]: List of (male, female) words.
+            The inner tuple is a word pair. The inner list contains groups of
+            pairs, eg. all indirect gender words. The outer list contains
+            multiple groups, eg. direct gender words, indirect gender words, etc.
+    """
+    direction_files = list_files(DIRECTIONS_PATH)
+    if subspace_pairs == 'pair':
+        groups = []
         for direction_file in direction_files:
-            direction = direction_file.rsplit('/', 1)[-1]
-            for word_file in words_files:
-                bias_words = word_file.rsplit('/', 1)[-1]
-                for g in subspaces:
-                    bias = run_experiment_1(model, direction_file, word_file, g)
-                    print(mdl, corp, debias, direction, g, bias_words, bias, opp, accuracy)
+            with open(direction_file) as fd:
+                for line in fd:
+                    pair = tuple(line.strip().split())
+                    group = [pair]
+                    groups.append(group)
+    elif subspace_pairs == 'group':
+        groups = []
+        for direction_file in direction_files:
+            with open(direction_file) as fd:
+                group = []
+                for line in fd:
+                    pair = tuple(line.strip().split())
+                    group.append(pair)
+                groups.append(group)
+    elif subspace_pairs == 'all':
+        groups = []
+        group = []
+        for direction_file in direction_files:
+            with open(direction_file) as fd:
+                for line in fd:
+                    pair = tuple(line.strip().split())
+                    group.append(pair)
+        groups.append(group)
+    else:
+        raise ValueError('unrecognized subspace pair parameter: {}'.format(
+            subspace_pairs
+        ))
+    return groups
 
-def run_experiment_2(model, male_words, female_words, words_file):
-    words = read_words_file(words_file)
-    # FIXME: passing a singular word right now
-    direction = define_gender_direction_mean(model, male_words, female_words)
-    bias = calculate_model_bias(model, direction, words)
-    return bias
 
-def experiment_2_results():
-    '''
-    All the words together
-    Words in one group
-    Pair by pair for all different kinds of gender pairs
-    :return:
-    '''
-    # INITIALIZATIONS
-    model_files, direction_files, words_files = load_data()
-    mdl = 'FastText'
-    corp = 'Wikipedia'
-    subspace = 'MEAN'
-    # Load all models first to avoid reloading them throughout the experiment
-    MDLS = []
-    debias = []
-    for model_file in model_files:
-        MDLS.append(FastText.load_fasttext_format(model_file))
-        if 'MODEL1' in model_file.rsplit('/', 1)[-1]:
-            debias.append('None')
+def load_bias_words(bias_words):
+    """
+    Returns:
+        List[str]:
+    """
+    return read_words_file('words/' + bias_words + '.txt')
+
+
+def run_experiment(parameters):
+    embedding = load_debaised_model(parameters.model_algo, parameters.debiasing)
+    # FIXME
+    # opp, accuracy = run_model_evaluation(model_file)
+    subspace_pair_groups = load_subspace_pairs(parameters.subspace_pairs)
+    for group_num, subspace_pair_group in enumerate(subspace_pair_groups):
+        male_words, female_words = zip(*subspace_pair_group)
+        if parameters.subspace_algo == 'mean':
+            direction = define_gender_direction_mean(embedding, male_words, female_words)
         else:
-            debias.append('Pronoun-Swap')
-    print("Model Corpus Debias Gender_Word_Group Gender_Subspace Bias_Words Bias")
-
-    # PAIR BY PAIR
-    word_group = 'pairwise'
-
-    for direction_file in direction_files:
-        with open(direction_file) as fd:
-            male_words, female_words = list(zip(*(line.split() for line in fd)))
-        for i in range(len(male_words)):
-            print(male_words[i], female_words[i])
-            for j in range(len(MDLS)):
-                for words_file in words_files:
-                    bias_words = words_file.rsplit('/', 1)[-1]
-                    direction = simple_gender_direction(MDLS[j], female_words[i], male_words[i])
-                    bias = calculate_model_bias(MDLS[j], direction, words_file)
-                    print(word_group, mdl, corp, debias[j], subspace, bias_words, bias)
-    # WORDS IN ONE FILE
-    word_group = 'file'
-    for direction_file in direction_files:
-        print(direction_file.rsplit('/',1)[-1])
-        with open(direction_file) as fd:
-            male_words, female_words = list(zip(*(line.split() for line in fd)))
-        for i in range(len(MDLS)):
-            for words_file in words_files:
-                bias_words = words_file.rsplit('/', 1)[-1]
-                bias = run_experiment_2(MDLS[i], male_words, female_words, words_file)
-                print(word_group, mdl, corp, debias[i], subspace, bias_words, bias)
-    # ALL WORDS TOGETHER
-    word_group = 'all'
-    male_words, female_words = [], []
-    for direction_file in direction_files:
-        with open(direction_file) as fd:
-            all_words = list(zip(*(line.split() for line in fd)))
-            male_words.extend(all_words[0])
-            female_words.extend(all_words[1])
-    for i in range(len(MDLS)):
-        for words_file in words_files:
-            bias_words = words_file.rsplit('/', 1)[-1]
-            bias = run_experiment_2(MDLS[i], male_words, female_words, words_file)
-            print(word_group, mdl, corp, debias[i], subspace, bias_words, bias)
-
+            direction = define_gender_direction_pca(embedding, male_words, female_words)
+        words = load_bias_words(parameters.bias_words)
+        bias = calculate_model_bias(embedding, direction, words)
+        print(
+            parameters.corpus,
+            parameters.model_algo,
+            parameters.debiasing,
+            parameters.subspace_pairs,
+            group_num,
+            parameters.subspace_algo,
+            parameters.bias_words,
+            bias,
+        )
 
 
 def build_all_fasttext_models(model_type='skipgram'):
@@ -285,12 +285,35 @@ def build_all_fasttext_models(model_type='skipgram'):
                 args=['fasttext', 'skipgram', '-input', corpus_file, '-output', model_stub]
             )
 
+
 def pretty_print(filename):
     print(filename.rsplit('/', 1)[-1])
 
+
+
+
 def main():
     """Entry point for the project."""
-    experiment_1_results()
+    pspace = PermutationSpace(
+        [
+            'corpus',
+            'model_algo',
+            'debiasing',
+            'subspace_pairs',
+            'subspace_algo',
+            'bias_words',
+        ],
+        corpus=['wikipedia'],
+        model_algo=['fasttext'],
+        debiasing=['none', 'wordswap', 'bolukbasi'],
+        subspace_pairs=['pair', 'group', 'all'],
+        subspace_algo=['mean', 'pca'],
+        bias_words=['occupations', 'adjectives'],
+    )
+    print(' '.join(pspace.order))
+    for parameter in pspace:
+        run_experiment(parameter)
+    #experiment_1_results()
     #experiment_2_results()
 
 

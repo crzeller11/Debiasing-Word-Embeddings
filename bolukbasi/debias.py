@@ -1,3 +1,13 @@
+"""
+Adapted from https://github.com/tolga-b/debiaswe
+
+Man is to Computer Programmer as Woman is to Homemaker? Debiasing Word Embeddings
+Tolga Bolukbasi, Kai-Wei Chang, James Zou, Venkatesh Saligrama, and Adam Kalai
+2016
+
+Adapted by Chloe Zeller, February 2019
+"""
+
 from __future__ import print_function, division
 import we
 import json
@@ -6,15 +16,6 @@ import sys
 if sys.version_info[0] < 3:
     import io
     open = io.open
-"""
-Hard-debias embedding
-
-Man is to Computer Programmer as Woman is to Homemaker? Debiasing Word Embeddings
-Tolga Bolukbasi, Kai-Wei Chang, James Zou, Venkatesh Saligrama, and Adam Kalai
-2016
-
-Adapted by Chloe Zeller, February 2019
-"""
 
 
 def debias(E, gender_specific_words, definitional, equalize):
@@ -40,11 +41,11 @@ def debias(E, gender_specific_words, definitional, equalize):
     E.normalize()
 
 def main():
-    embedding_filename = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/models/NETWORK2MODEL1.bin'
-    definitional_filename = 'definitional_pairs.json'
-    gendered_words_filename = 'gender_specific_full.json'
-    equalize_filename = 'equalize_pairs.json'
-    debiased_filename = '/Users/chloerainezeller/Desktop/Occidental/Oxy - Fourth Year/First Semester/COMPSCI COMPS/Debiasing-Word-Embeddings/models/bolukbasi_hard_biased_model.bin'
+    embedding_filename = 'models/NETWORK2MODEL1.bin'
+    definitional_filename = 'data/definitional_pairs.json'
+    gendered_words_filename = 'data/gender_specific_full.json'
+    equalize_filename = 'data/equalize_pairs.json'
+    debiased_filename = 'models/bolukbasi_hard_biased_model.bin'
     with open(definitional_filename, "r") as f:
         defs = json.load(f)
     with open(equalize_filename, "r") as f:
