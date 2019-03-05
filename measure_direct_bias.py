@@ -1,5 +1,6 @@
 import os
 import subprocess
+from itertools import groupby
 
 import numpy as np
 from sklearn.decomposition import PCA
@@ -197,43 +198,31 @@ def load_subspace_pairs(subspace_pairs):
     """Load the pairs used for gender subspace definition.
 
     Returns:
-        List[List[Tuple[str, str]]]: List of (male, female) words.
-            The inner tuple is a word pair. The inner list contains groups of
-            pairs, eg. all indirect gender words. The outer list contains
-            multiple groups, eg. direct gender words, indirect gender words, etc.
+        Dict[str, List[Tuple[str, str]]]: Dictionary of gender word pairs. The
+            value is a list of (male, female) words; the key is the name of
+            that list.
     """
-    direction_files = list_files(DIRECTIONS_PATH)
+    filepairs = []
+    for direction_file in list_files(DIRECTIONS_PATH):
+        with open(direction_file) as fd:
+            filepairs.extend(
+                (direction_file, tuple(line.strip().split()))
+                for line in fd
+            )
     if subspace_pairs == 'pair':
-        groups = []
-        for direction_file in direction_files:
-            with open(direction_file) as fd:
-                for line in fd:
-                    pair = tuple(line.strip().split())
-                    group = [pair]
-                    groups.append(group)
+        keyfunc = (lambda filepair: '-'.join(filepair[1]))
     elif subspace_pairs == 'group':
-        groups = []
-        for direction_file in direction_files:
-            with open(direction_file) as fd:
-                group = []
-                for line in fd:
-                    pair = tuple(line.strip().split())
-                    group.append(pair)
-                groups.append(group)
+        keyfunc = (lambda filepair: filepair[0])
     elif subspace_pairs == 'all':
-        groups = []
-        group = []
-        for direction_file in direction_files:
-            with open(direction_file) as fd:
-                for line in fd:
-                    pair = tuple(line.strip().split())
-                    group.append(pair)
-        groups.append(group)
+        keyfunc = (lambda filepair: 'all')
     else:
         raise ValueError('unrecognized subspace pair parameter: {}'.format(
             subspace_pairs
         ))
-    return groups
+    return {
+        key: [filepair[1] for filepair in group] for key, group
+        in groupby(filepairs, key=keyfunc)
+    }
 
 
 def load_bias_words(bias_words):
@@ -249,7 +238,7 @@ def run_experiment(parameters):
     # FIXME
     # opp, accuracy = run_model_evaluation(model_file)
     subspace_pair_groups = load_subspace_pairs(parameters.subspace_pairs)
-    for group_num, subspace_pair_group in enumerate(subspace_pair_groups):
+    for group_name, subspace_pair_group in subspace_pair_groups.items():
         male_words, female_words = zip(*subspace_pair_group)
         if parameters.subspace_algo == 'mean':
             direction = define_gender_direction_mean(embedding, male_words, female_words)
@@ -262,7 +251,7 @@ def run_experiment(parameters):
             parameters.model_algo,
             parameters.debiasing,
             parameters.subspace_pairs,
-            group_num,
+            group_name,
             parameters.subspace_algo,
             parameters.bias_words,
             bias,
