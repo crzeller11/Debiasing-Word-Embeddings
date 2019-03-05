@@ -14,7 +14,6 @@ from blair import WrappedEmbedding
 from blair import read_dataset_directory, score_embedding
 
 
-# Could pass a nester list of
 def define_gender_direction_mean(model, male_words, female_words):
     """
     Create a gender direction by averaging dimensions of all gender words.
@@ -150,16 +149,7 @@ def load_bias_words(bias_words):
     return words
 
 
-def load_data():
-    build_all_fasttext_models('skipgram')
-    model_files = list_files(MODELS_PATH)
-    model_files = [file for file in model_files if file.endswith('.bin')]
-    direction_files = list_files(DIRECTIONS_PATH)
-    words_files = list_files(WORDS_PATH)
-    return model_files, direction_files, words_files
-
-
-def run_model_evaluation(model_file, ):
+def run_model_evaluation(model_file):
     kwargs = {'supports_phrases': False,
               'google_news_normalize': False}
     embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
@@ -268,12 +258,6 @@ def build_all_fasttext_models(model_type='skipgram'):
             )
 
 
-def pretty_print(filename):
-    print(filename.rsplit('/', 1)[-1])
-
-
-
-
 def main():
     """Entry point for the project."""
     pspace = PermutationSpace(
@@ -295,8 +279,6 @@ def main():
     print(' '.join(pspace.order))
     for parameter in pspace:
         run_experiment(parameter)
-    #experiment_1_results()
-    #experiment_2_results()
 
 
 if __name__ == '__main__':
