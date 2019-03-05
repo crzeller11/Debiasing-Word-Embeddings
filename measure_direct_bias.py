@@ -133,15 +133,16 @@ def calculate_model_bias(model, direction, words, strictness=1):
     return abs_total / count
 
 
-def read_words_file(words_file):
+def load_bias_words(bias_words):
     """Read in a words file.
 
     Arguments:
-        words_file (str): A file path of neutral words.
+        words_file (str): The bias_words parameter.
 
     Returns:
         List(str): The words in the file.
     """
+    words_file = 'words/' + bias_words + '.txt'
     words = []
     with open(words_file) as fd:
         for line in fd.readlines():
@@ -223,14 +224,6 @@ def load_subspace_pairs(subspace_pairs):
         key: [filepair[1] for filepair in group] for key, group
         in groupby(filepairs, key=keyfunc)
     }
-
-
-def load_bias_words(bias_words):
-    """
-    Returns:
-        List[str]:
-    """
-    return read_words_file('words/' + bias_words + '.txt')
 
 
 def run_experiment(parameters):
