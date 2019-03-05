@@ -24,10 +24,13 @@ def list_files(path):
     Returns:
         List[str]: List of files in the directory.
     """
-    return [
+    result = [
         os.path.join(path, file)
         for file in os.listdir(path)
         if not file.startswith('.')
     ]
+    if not result:
+        raise ValueError('no files found under ' + path)
+    return result
 
 make_project_dirs()

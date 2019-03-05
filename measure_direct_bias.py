@@ -1,5 +1,6 @@
 import os
 import subprocess
+from itertools import groupby
 
 import numpy as np
 from sklearn.decomposition import PCA
@@ -13,7 +14,6 @@ from blair import WrappedEmbedding
 from blair import read_dataset_directory, score_embedding
 
 
-# Could pass a nester list of
 def define_gender_direction_mean(model, male_words, female_words):
     """
     Create a gender direction by averaging dimensions of all gender words.
@@ -132,15 +132,16 @@ def calculate_model_bias(model, direction, words, strictness=1):
     return abs_total / count
 
 
-def read_words_file(words_file):
+def load_bias_words(bias_words):
     """Read in a words file.
 
     Arguments:
-        words_file (str): A file path of neutral words.
+        words_file (str): The bias_words parameter.
 
     Returns:
         List(str): The words in the file.
     """
+    words_file = 'words/' + bias_words + '.txt'
     words = []
     with open(words_file) as fd:
         for line in fd.readlines():
@@ -148,16 +149,7 @@ def read_words_file(words_file):
     return words
 
 
-def load_data():
-    build_all_fasttext_models('skipgram')
-    model_files = list_files(MODELS_PATH)
-    model_files = [file for file in model_files if file.endswith('.bin')]
-    direction_files = list_files(DIRECTIONS_PATH)
-    words_files = list_files(WORDS_PATH)
-    return model_files, direction_files, words_files
-
-
-def run_model_evaluation(model_file, ):
+def run_model_evaluation(model_file):
     kwargs = {'supports_phrases': False,
               'google_news_normalize': False}
     embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
@@ -197,51 +189,31 @@ def load_subspace_pairs(subspace_pairs):
     """Load the pairs used for gender subspace definition.
 
     Returns:
-        List[List[Tuple[str, str]]]: List of (male, female) words.
-            The inner tuple is a word pair. The inner list contains groups of
-            pairs, eg. all indirect gender words. The outer list contains
-            multiple groups, eg. direct gender words, indirect gender words, etc.
+        Dict[str, List[Tuple[str, str]]]: Dictionary of gender word pairs. The
+            value is a list of (male, female) words; the key is the name of
+            that list.
     """
-    direction_files = list_files(DIRECTIONS_PATH)
+    filepairs = []
+    for direction_file in list_files(DIRECTIONS_PATH):
+        with open(direction_file) as fd:
+            filepairs.extend(
+                (direction_file, tuple(line.strip().split()))
+                for line in fd
+            )
     if subspace_pairs == 'pair':
-        groups = []
-        for direction_file in direction_files:
-            with open(direction_file) as fd:
-                for line in fd:
-                    pair = tuple(line.strip().split())
-                    group = [pair]
-                    groups.append(group)
+        keyfunc = (lambda filepair: '-'.join(filepair[1]))
     elif subspace_pairs == 'group':
-        groups = []
-        for direction_file in direction_files:
-            with open(direction_file) as fd:
-                group = []
-                for line in fd:
-                    pair = tuple(line.strip().split())
-                    group.append(pair)
-                groups.append(group)
+        keyfunc = (lambda filepair: filepair[0])
     elif subspace_pairs == 'all':
-        groups = []
-        group = []
-        for direction_file in direction_files:
-            with open(direction_file) as fd:
-                for line in fd:
-                    pair = tuple(line.strip().split())
-                    group.append(pair)
-        groups.append(group)
+        keyfunc = (lambda filepair: 'all')
     else:
         raise ValueError('unrecognized subspace pair parameter: {}'.format(
             subspace_pairs
         ))
-    return groups
-
-
-def load_bias_words(bias_words):
-    """
-    Returns:
-        List[str]:
-    """
-    return read_words_file('words/' + bias_words + '.txt')
+    return {
+        key: [filepair[1] for filepair in group] for key, group
+        in groupby(filepairs, key=keyfunc)
+    }
 
 
 def run_experiment(parameters):
@@ -249,7 +221,7 @@ def run_experiment(parameters):
     # FIXME
     # opp, accuracy = run_model_evaluation(model_file)
     subspace_pair_groups = load_subspace_pairs(parameters.subspace_pairs)
-    for group_num, subspace_pair_group in enumerate(subspace_pair_groups):
+    for group_name, subspace_pair_group in subspace_pair_groups.items():
         male_words, female_words = zip(*subspace_pair_group)
         if parameters.subspace_algo == 'mean':
             direction = define_gender_direction_mean(embedding, male_words, female_words)
@@ -262,7 +234,7 @@ def run_experiment(parameters):
             parameters.model_algo,
             parameters.debiasing,
             parameters.subspace_pairs,
-            group_num,
+            group_name,
             parameters.subspace_algo,
             parameters.bias_words,
             bias,
@@ -286,12 +258,6 @@ def build_all_fasttext_models(model_type='skipgram'):
             )
 
 
-def pretty_print(filename):
-    print(filename.rsplit('/', 1)[-1])
-
-
-
-
 def main():
     """Entry point for the project."""
     pspace = PermutationSpace(
@@ -313,8 +279,6 @@ def main():
     print(' '.join(pspace.order))
     for parameter in pspace:
         run_experiment(parameter)
-    #experiment_1_results()
-    #experiment_2_results()
 
 
 if __name__ == '__main__':
