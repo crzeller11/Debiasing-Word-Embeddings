@@ -53,12 +53,14 @@ def define_gender_direction_mean(model, male_words, female_words):
                 num_fem_words -= 1
         if num_male_words == 0 or num_fem_words == 0:
             # FIXME deal with failing to find the male/female words
-            pass
+            continue
         elif num_male_words != num_fem_words:
             # FIXME deal with different numbers of male/female words
-            pass
+            continue
         fem_avg_vec.append(fem_sum / num_fem_words)
         male_avg_vec.append(male_sum / num_male_words)
+    if not fem_avg_vec or not male_avg_vec:
+        return None
     fem_avg_vec = fem_avg_vec / np.linalg.norm(fem_avg_vec, ord=1)
     male_avg_vec = male_avg_vec / np.linalg.norm(male_avg_vec, ord=1)
     subtraction = np.array(np.subtract(fem_avg_vec, male_avg_vec))
@@ -227,8 +229,11 @@ def run_experiment(parameters):
             direction = define_gender_direction_mean(embedding, male_words, female_words)
         else:
             direction = define_gender_direction_pca(embedding, male_words, female_words)
-        words = load_bias_words(parameters.bias_words)
-        bias = calculate_model_bias(embedding, direction, words)
+        if direction is None:
+            bias = 'N/A'
+        else:
+            words = load_bias_words(parameters.bias_words)
+            bias = calculate_model_bias(embedding, direction, words)
         print(
             parameters.corpus,
             parameters.model_algo,
