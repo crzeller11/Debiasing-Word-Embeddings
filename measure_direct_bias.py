@@ -240,7 +240,10 @@ def load_subspace_pairs(subspace_pairs):
     for direction_file in list_files(DIRECTIONS_PATH):
         with open(direction_file) as fd:
             filepairs.extend(
-                (direction_file, tuple(line.strip().split()))
+                (
+                    os.path.basename(direction_file),
+                    tuple(line.strip().split())
+                )
                 for line in fd
             )
     if subspace_pairs == 'pair':
