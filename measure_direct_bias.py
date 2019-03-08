@@ -52,45 +52,16 @@ def define_gender_direction_mean(model, male_words, female_words):
     Returns:
          Vector: a male->female vector.
     """
-    fem_avg_vec, male_avg_vec = [], []
-    num_male_words, num_fem_words = len(male_words), len(female_words)
-    num_dimensions = len(model['feminism'])
-    # FIXME
-    # for female, male in zip(words...):
-    #     female_word = ...
-    #     male_word = ...
-    #     if either if not found:
-    #         continue
-    #     vectors.append(...)
-    # average = vectors...
-    for dim in range(num_dimensions): # loop through all dimensions
-        fem_sum, male_sum = 0, 0
-        for male_word, female_word in zip(male_words, female_words):
-            # MALE VECTORS
-            if male_word in model:
-                male_sum += normalize(model[male_word])[dim]
-            else:
-                num_male_words -= 1
-            # FEMALE VECTORS
-            if female_word in model:
-                fem_sum += normalize(model[female_word])[dim]
-            else:
-                num_fem_words -= 1
-        if num_male_words == 0 or num_fem_words == 0:
-            # FIXME deal with failing to find the male/female words
+    diff_vectors = []
+    for male_word, female_word in zip(male_words, female_words):
+        if not (male_word in model and female_word in model):
             continue
-        elif num_male_words != num_fem_words:
-            # FIXME deal with different numbers of male/female words
-            continue
-        fem_avg_vec.append(fem_sum / num_fem_words)
-        male_avg_vec.append(male_sum / num_male_words)
-    if not fem_avg_vec or not male_avg_vec:
+        diff_vector = model[female_word] - model[male_word]
+        diff_vectors.append(normalize(diff_vector))
+    if not diff_vectors:
         return None
-    fem_avg_vec = normalize(fem_avg_vec)
-    male_avg_vec = normalize(male_avg_vec)
-    subtraction = np.array(np.subtract(fem_avg_vec, male_avg_vec))
-    subtraction = normalize(subtraction)
-    return subtraction
+    result = np.mean(np.array(diff_vectors), axis=0)
+    return result
 
 
 def define_gender_direction_pca(model, male_words, female_words):
