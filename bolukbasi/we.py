@@ -49,7 +49,7 @@ class WordEmbedding:
         self.thresh = None
         self.max_words = None
         self.desc = fname
-        print("*** Reading data from " + fname)
+        #print("*** Reading data from " + fname)
         if fname.endswith(".bin"):
             from gensim.models import FastText
             model = FastText.load_fasttext_format(fname)
@@ -69,7 +69,7 @@ class WordEmbedding:
                     words.append(s[0])
                     vecs.append(v)
         self.vecs = vecs
-        print(self.vecs.shape)
+        #print(self.vecs.shape)
         self.words = words
         self.reindex()
         norms = np.linalg.norm(self.vecs, axis=1)
@@ -81,7 +81,7 @@ class WordEmbedding:
         self.n, self.d = self.vecs.shape
         assert self.n == len(self.words) == len(self.index)
         self._neighbors = None
-        print(self.n, "words of dimension", self.d, ":", ", ".join(self.words[:4] + ["..."] + self.words[-4:]))
+        #print(self.n, "words of dimension", self.d, ":", ", ".join(self.words[:4] + ["..."] + self.words[-4:]))
 
     def v(self, word):
         word = word.lower()

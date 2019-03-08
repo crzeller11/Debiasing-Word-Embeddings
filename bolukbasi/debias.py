@@ -30,7 +30,7 @@ def debias(E, gender_specific_words, definitional, equalize):
     candidates = {x for e1, e2 in equalize for x in [(e1.lower(), e2.lower()),
                                                      (e1.title(), e2.title()),
                                                      (e1.upper(), e2.upper())]}
-    print(candidates)
+    #print(candidates)
     for (a, b) in candidates:
         if (a in E.index and b in E.index):
             y = drop((E.v(a) + E.v(b)) / 2, gender_direction)
