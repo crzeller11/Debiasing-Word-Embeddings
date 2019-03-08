@@ -87,6 +87,8 @@ def define_gender_direction_pca(model, male_words, female_words):
             center = (fem_vec_norm + male_vec_norm) / 2
             matrix.append(fem_vec_norm - center)
             matrix.append(male_vec_norm - center)
+    if not matrix:
+        return None
     matrix = np.array(matrix)
     pca = PCA()
     pca.fit(matrix)
