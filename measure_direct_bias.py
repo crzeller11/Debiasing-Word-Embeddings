@@ -253,7 +253,7 @@ def build_all_fasttext_models(model_type='skipgram'):
         raise ValueError('model_type must be "skipgram" or "cbow" but got "' + str(model_type) + '"')
     for corpus_file in list_files(CORPORA_PATH):
         if not corpus_file.endswith('-swapped'):
-            create_pronoun_swapped_corpus(corpus_file)
+            create_pronoun_swapped_corpus(corpus_file, 'swap-pairs/pronouns')
     for corpus_file in list_files(CORPORA_PATH):
         model_stub = os.path.join(
             MODELS_PATH,
