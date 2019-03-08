@@ -1,5 +1,6 @@
 import os
 import subprocess
+import json
 from itertools import groupby
 
 import numpy as np
@@ -12,7 +13,27 @@ from permspace import PermutationSpace
 
 from blair import WrappedEmbedding
 from blair import read_dataset_directory, score_embedding
+from bolukbasi.we import WordEmbedding as BolukbasiEmbedding
+from bolukbasi.debias import debias as bolukbasi_debias
 
+
+class EmbeddingAdaptor:
+
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+        self.bolukbasi = not isinstance(wrapped, WrappedEmbedding)
+
+    def __contains__(self, key):
+        if self.bolukbasi:
+            return key.lower() in self.wrapped.index
+        else:
+            return key in self.wrapped
+
+    def __getitem__(self, key):
+        if self.bolukbasi:
+            return self.wrapped.v(key)
+        else:
+            return self.wrapped.get_vector(key)
 
 def define_gender_direction_mean(model, male_words, female_words):
     """
@@ -27,7 +48,7 @@ def define_gender_direction_mean(model, male_words, female_words):
     """
     fem_avg_vec, male_avg_vec = [], []
     num_male_words, num_fem_words = len(male_words), len(female_words)
-    num_dimensions = len(model.get_vector('feminism'))
+    num_dimensions = len(model['feminism'])
     # FIXME
     # for female, male in zip(words...):
     #     female_word = ...
@@ -41,13 +62,13 @@ def define_gender_direction_mean(model, male_words, female_words):
         for male_word, female_word in zip(male_words, female_words):
             # MALE VECTORS
             if male_word in model:
-                male_vec_norm = model.get_vector(male_word) / np.linalg.norm(model.get_vector(male_word), ord=1)
+                male_vec_norm = model[male_word] / np.linalg.norm(model[male_word], ord=1)
                 male_sum += male_vec_norm[dim]
             else:
                 num_male_words -= 1
             # FEMALE VECTORS
             if female_word in model:
-                fem_vec_norm = model.get_vector(female_word) / np.linalg.norm(model.get_vector(female_word), ord=1)
+                fem_vec_norm = model[female_word] / np.linalg.norm(model[female_word], ord=1)
                 fem_sum += fem_vec_norm[dim]
             else:
                 num_fem_words -= 1
@@ -82,8 +103,8 @@ def define_gender_direction_pca(model, male_words, female_words):
     matrix = []
     for female_word, male_word in zip(female_words, male_words):
         if female_word in model and male_word in model:
-            fem_vec_norm = model.get_vector(female_word) / np.linalg.norm(model.get_vector(female_word), ord=1)
-            male_vec_norm = model.get_vector(male_word) / np.linalg.norm(model.get_vector(male_word), ord=1)
+            fem_vec_norm = model[female_word] / np.linalg.norm(model[female_word], ord=1)
+            male_vec_norm = model[male_word] / np.linalg.norm(model[male_word], ord=1)
             center = (fem_vec_norm + male_vec_norm) / 2
             matrix.append(fem_vec_norm - center)
             matrix.append(male_vec_norm - center)
@@ -110,7 +131,7 @@ def calculate_word_bias(model, direction, word, strictness=1):
     """
     if word not in model:
         return None
-    word_vector = model.get_vector(word) / np.linalg.norm(model.get_vector(word), ord=1)
+    word_vector = model[word] / np.linalg.norm(model[word], ord=1)
     direction_vector = direction / np.linalg.norm(direction, ord=1)
     return np.dot(word_vector, direction_vector)**strictness
 
@@ -156,10 +177,26 @@ def load_bias_words(bias_words):
 def run_model_evaluation(model_file):
     kwargs = {'supports_phrases': False,
               'google_news_normalize': False}
-    embedding = WrappedEmbedding.from_fasttext(model_file, **kwargs)
+    embedding = EmbeddingAdaptor(WrappedEmbedding.from_fasttext(model_file, **kwargs))
     dataset = list(read_dataset_directory('wiki-sem-500/en'))
     opp, accuracy = score_embedding(embedding, dataset)
     return opp, accuracy
+
+
+def load_bolukbasi_model():
+    embedding_filename = 'models/fasttext-biased.bin'
+    definitional_filename = 'data/definitional_pairs.json'
+    gendered_words_filename = 'data/gender_specific_full.json'
+    equalize_filename = 'data/equalize_pairs.json'
+    with open(definitional_filename, "r") as fd:
+        defs = json.load(fd)
+    with open(equalize_filename, "r") as fd:
+        equalize_pairs = json.load(fd)
+    with open(gendered_words_filename, "r") as fd:
+        gender_specific_words = json.load(fd)
+    embedding = BolukbasiEmbedding(embedding_filename)
+    bolukbasi_debias(embedding, gender_specific_words, defs, equalize_pairs)
+    return embedding
 
 
 def load_debaised_model(model, debias):
@@ -178,11 +215,11 @@ def load_debaised_model(model, debias):
         'google_news_normalize': False,
     }
     if debias == 'none':
-        return WrappedEmbedding.from_fasttext('models/fasttext-biased.bin', **kwargs)
+        return EmbeddingAdaptor(WrappedEmbedding.from_fasttext('models/fasttext-biased.bin', **kwargs))
     elif debias == 'wordswap':
-        return WrappedEmbedding.from_fasttext('models/fasttext-wordswapped.bin', **kwargs)
+        return EmbeddingAdaptor(WrappedEmbedding.from_fasttext('models/fasttext-wordswapped.bin', **kwargs))
     elif debias == 'bolukbasi':
-        return WrappedEmbedding.from_word2vec('models/fasttext-bolukbasi.bin', **kwargs)
+        return EmbeddingAdaptor(load_bolukbasi_model())
     else:
         raise ValueError('unrecognized model/debiasing pair: {}, {}'.format(
             model, debias
