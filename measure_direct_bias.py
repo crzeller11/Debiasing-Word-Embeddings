@@ -2,6 +2,7 @@ import os
 import subprocess
 import json
 from itertools import groupby
+from functools import lru_cache
 
 import numpy as np
 from sklearn.decomposition import PCA
@@ -199,6 +200,7 @@ def load_bolukbasi_model():
     return embedding
 
 
+@lru_cache()
 def load_debaised_model(model, debias):
     """Load a debiased word embedding model.
 
