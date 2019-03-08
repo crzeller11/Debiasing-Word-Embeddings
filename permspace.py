@@ -154,6 +154,7 @@ class PermutationSpace:
             arguments,
             self.order.index(min_place_arg),
         ))
+        return self
 
     def iter_from(self, start=None, skip=0):
         """Iterate starting from a particular assignment of values.
