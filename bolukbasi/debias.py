@@ -9,7 +9,6 @@ Adapted by Chloe Zeller, February 2019
 """
 
 from __future__ import print_function, division
-import we
 import json
 import numpy as np
 import sys
@@ -17,22 +16,24 @@ if sys.version_info[0] < 3:
     import io
     open = io.open
 
+from .we import WordEmbedding, drop, doPCA
+
 
 def debias(E, gender_specific_words, definitional, equalize):
     # TODO: should we use our own version of PCA or theirs?
-    gender_direction = we.doPCA(definitional, E).components_[0]
+    gender_direction = doPCA(definitional, E).components_[0]
     specific_set = set(gender_specific_words)
     for i, w in enumerate(E.words):
         if w not in specific_set:
-            E.vecs[i] = we.drop(E.vecs[i], gender_direction)
+            E.vecs[i] = drop(E.vecs[i], gender_direction)
     E.normalize()
     candidates = {x for e1, e2 in equalize for x in [(e1.lower(), e2.lower()),
                                                      (e1.title(), e2.title()),
                                                      (e1.upper(), e2.upper())]}
-    print(candidates)
+    #print(candidates)
     for (a, b) in candidates:
         if (a in E.index and b in E.index):
-            y = we.drop((E.v(a) + E.v(b)) / 2, gender_direction)
+            y = drop((E.v(a) + E.v(b)) / 2, gender_direction)
             z = np.sqrt(1 - np.linalg.norm(y)**2)
             if (E.v(a) - E.v(b)).dot(gender_direction) < 0:
                 z = -z
@@ -52,7 +53,7 @@ def main():
         equalize_pairs = json.load(f)
     with open(gendered_words_filename, "r") as f:
         gender_specific_words = json.load(f)
-    E = we.WordEmbedding(embedding_filename)
+    E = WordEmbedding(embedding_filename)
     debias(E, gender_specific_words, defs, equalize_pairs)
     '''
     Not sure if I understand why we wouldn't save another copy of this model. If we don't, then we won't have an
