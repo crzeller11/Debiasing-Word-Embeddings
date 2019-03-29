@@ -304,7 +304,7 @@ def main():
         lambda debiasing:
             debiasing == 'all_pairs'
     )
-    print(' '.join(pspace.order))
+    print('corpus model_algo debiasing subspace_pairs subspace_seed subspace_algo bias_words bias')
     for parameter in pspace:
         run_experiment(parameter)
 
