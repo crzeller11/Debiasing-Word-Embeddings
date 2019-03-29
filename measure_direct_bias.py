@@ -193,9 +193,11 @@ def load_debaised_model(model, debias):
     if debias == 'none':
         return EmbeddingAdaptor(WrappedEmbedding.from_fasttext('models/fasttext-biased.bin', **kwargs))
     elif debias == 'wordswap':
-        return EmbeddingAdaptor(WrappedEmbedding.from_fasttext('models/fasttext-wordswapped.bin', **kwargs))
+        return EmbeddingAdaptor(WrappedEmbedding.from_fasttext('models/fasttext-wordswapped-pronouns.bin', **kwargs))
     elif debias == 'bolukbasi':
         return EmbeddingAdaptor(load_bolukbasi_model())
+    elif debias == 'all_pairs':
+        return EmbeddingAdaptor(WrappedEmbedding.from_fasttext('models/fasttext-wordswapper-allpairs.bin', **kwargs))
     else:
         raise ValueError('unrecognized model/debiasing pair: {}, {}'.format(
             model, debias
