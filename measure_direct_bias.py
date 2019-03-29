@@ -294,10 +294,13 @@ def main():
         ],
         corpus=['wikipedia'],
         model_algo=['fasttext'],
-        debiasing=['none', 'wordswap', 'bolukbasi'],
+        debiasing=['none', 'wordswap', 'bolukbasi', 'all_pairs'],
         subspace_pairs=['pair', 'group', 'all'],
         subspace_algo=['mean', 'pca'],
         bias_words=['occupations', 'adjectives'],
+    ).filter(
+        lambda debiasing:
+            debiasing == 'all_pairs'
     )
     print(' '.join(pspace.order))
     for parameter in pspace:
